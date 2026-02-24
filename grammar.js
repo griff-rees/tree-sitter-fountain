@@ -83,7 +83,8 @@ module.exports = grammar({
 
     character: $ => choice(
       seq('@', field('forced', /.+/), '\n'),
-      seq(field('name', /[A-Z][A-Z0-9 .,'()\-\x{2013}\x{2014}]+/u), '\n')
+      // seq(field('name', /[A-Z][A-Z0-9 .,'()\-\x{2013}\x{2014}]+/u), '\n')
+      seq(field('name', /[A-Z][A-Z0-9 .,'()-]*/), '\n')
     ),
 
     dialogue: $ => seq(
@@ -110,7 +111,8 @@ module.exports = grammar({
     lyric: $ => seq('~', field('text', $.inline_text), '\n'),
 
     transition: $ => choice(
-      seq(field('text', /[A-Z][A-Z0-9 .,'()\-\x{2013}\x{2014}]+/u), 'TO:', '\n'),
+      // seq(field('text', /[A-Z][A-Z0-9 .,'()\-\x{2013}\x{2014}]+/u), 'TO:', '\n'),
+      seq(field('text', /[A-Z][A-Z0-9 .,'()-]*/), 'TO:', '\n'),
       seq('>', field('forced', /.+/), '\n')
     ),
 
@@ -125,7 +127,9 @@ module.exports = grammar({
 
     synopsis: $ => seq('=', ' ', field('text', /.+/), '\n'),
 
-    note: $ => seq('[[', field('text', /[^\\\]]+|\\\](?!\])|\\\[?!\[)*/), ']]'),
+    // note: $ => seq('[[', field('text', /[^\\\]]+|\\\](?!\])|\\\[?!\[)*/), ']]'),
+    // Following https://github.com/UserNobody14/tree-sitter-fountain/blob/1f8e7f77b6e9b8bdfd120cd65df0048d5cc9b147/grammar.js#L222C6-L222C52
+    note: $ => token(seq('[[', /[^[\]]]+/, ']]')),
 
     boneyard: $ => seq(
       '/*',
@@ -138,7 +142,8 @@ module.exports = grammar({
       $.emphasis
     )),
 
-    normal_text: $ => /[^_*~\\[]+|\\[_*~\\[]/,
+    // normal_text: $ => /[^_*~\\[]+|\\[_*~\\[]/,
+    normal_text: $ => /((\\(\*|_))|[A-Za-z0-9.,'\-!? &;])+/,
     
     emphasis: $ => choice(
       $.italic,
@@ -147,15 +152,26 @@ module.exports = grammar({
       $.underline
     ),
 
+    // italic: $ => seq('*', field('text', $.emphasis), '*'),
+    // bold: $ => seq('**', field('text', $.emphasis), '**'),
+    // bold_italic: $ => seq('***', field('text', $.emphasis), '***'),
+    // underline: $ => seq('_', field('text', $.emphasis), '_'),
+
     italic: $ => seq('*', field('text', $.emphasis_content), '*'),
     bold: $ => seq('**', field('text', $.emphasis_content), '**'),
     bold_italic: $ => seq('***', field('text', $.emphasis_content), '***'),
     underline: $ => seq('_', field('text', $.emphasis_content), '_'),
 
+    // emphasis_content: $ => repeat1(choice(
+    //   /\[^_*~\[\]+/,
+    //   $.emphasis,
+    //   '\\[_*~\\[]'
+    //   // '\[_*~\[\]'
+    // ))
     emphasis_content: $ => repeat1(choice(
-      /[^_*~\\[]+/,
-      $.emphasis,
-      '\\[_*~\\[]'
+      /[^_*~\[\]]+/,          // Text without formatting chars
+      $.emphasis,             // Nested formatting
+      /\\[_*~\[\]]/           // Escaped special characters
     ))
   }
-});/ tree-sitter-fountain/grammar.js
+});

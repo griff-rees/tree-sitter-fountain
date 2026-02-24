@@ -138,7 +138,7 @@ module.exports = grammar({
     synopsis: $ => seq('=', ' ', field('text', /.+/), '\n'),
 
     // NOTE
-    // note: $ => seq('[[', field('text', /[^\\]]+|\\](?!])|\\[(?!\\[)*/), ']]'),
+    note: $ => seq('[[', field('text', /[^\\]]+|\\](?!])|\\[(?!\\[)*/), ']]'),
 
     // BONEYARD (commented out text)
     boneyard: $ => seq(
