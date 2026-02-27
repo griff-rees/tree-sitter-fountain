@@ -27,7 +27,7 @@ module.exports = grammar({
       $.scene_heading,
       $.action,
       $.centered,
-      $.character,
+      // $.character,
       $.dialogue,
       $.parenthetical,
       $.transition,
@@ -81,21 +81,33 @@ module.exports = grammar({
 
     centered: $ => seq('>', field('text', $.inline_text), '<', '\n'),
 
+    // character: $ => choice(
+    //   seq('@', field('forced', /.+/), '\n'),
+    //   // seq(field('name', /[A-Z][A-Z0-9 .,'()\-\x{2013}\x{2014}]+/u), '\n')
+    //   seq(field('name', /[A-Z][A-Z0-9 .,'()-]*/), '\n')
+    // ),
+
     character: $ => choice(
-      seq('@', field('forced', /.+/), '\n'),
-      // seq(field('name', /[A-Z][A-Z0-9 .,'()\-\x{2013}\x{2014}]+/u), '\n')
-      seq(field('name', /[A-Z][A-Z0-9 .,'()-]*/), '\n')
+      seq('@', /.+/, '\n'),
+      seq(/[A-Z][A-Z0-9 .,'()-]*/, '\n')  // No lowercase, must be uppercase
     ),
 
-    dialogue: $ => seq(
+    // dialogue: $ => seq(
+    //   $.character,
+    //   optional($.parenthetical),
+    //   repeat(choice(
+    //     seq($.spoken),
+    //     seq($.parenthetical)
+    //   )),
+    //   '\n'
+    // ),
+
+    dialogue: $ => prec.left(1, seq(
       $.character,
       optional($.parenthetical),
-      repeat(choice(
-        seq($.spoken),
-        seq($.parenthetical)
-      )),
+      repeat(choice($.spoken, $.parenthetical)),
       '\n'
-    ),
+    )),
     
     spoken: $ => seq(field('text', $.inline_text), '\n'),
 
