@@ -246,8 +246,15 @@
       "name": "_parenthetical_line"
     },
     "lyric": {
-      "type": "SYMBOL",
-      "name": "_lyric_line"
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "REPEAT1",
+        "content": {
+          "type": "SYMBOL",
+          "name": "_lyric_line"
+        }
+      }
     },
     "scene_heading": {
       "type": "PREC_DYNAMIC",

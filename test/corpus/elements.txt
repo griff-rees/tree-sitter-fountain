@@ -145,7 +145,6 @@ OOMPA LOOMPA
   (lyric)
   (dialogue
     (character)
-    (lyric)
     (lyric)))
 
 ==============================
@@ -332,4 +331,30 @@ The start of act two.
 (screenplay
   (action)
   (page_break)
+  (action))
+
+==============================
+Consecutive lyric lines form one block
+==============================
+
+~Happy birthday to you
+~Happy birthday to you
+~Happy birthday dear Pam
+~Happy birthday to you!
+
+PAM'S FAMILY
+(sung)
+~Happy birthday to you
+~Happy birthday to you
+
+She blows out the candles.
+
+---
+
+(screenplay
+  (lyric)
+  (dialogue
+    (character)
+    (parenthetical)
+    (lyric))
   (action))

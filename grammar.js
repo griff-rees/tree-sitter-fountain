@@ -148,7 +148,8 @@ module.exports = grammar({
 
     parenthetical: ($) => $._parenthetical_line,
 
-    lyric: ($) => $._lyric_line,
+    // Consecutive lyric lines (a verse, no blanks between) form one block.
+    lyric: ($) => prec.right(repeat1($._lyric_line)),
 
     // === Single-line blocks ===
 
