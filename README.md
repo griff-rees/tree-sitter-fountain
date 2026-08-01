@@ -100,6 +100,12 @@ commit messages. Contributors are expected to follow the
 - Earlier drafts of this grammar (preserved in `grammar-old.js`) drew on
   [UserNobody14/tree-sitter-fountain](https://github.com/UserNobody14/tree-sitter-fountain),
   whose work is gratefully acknowledged.
+- Carson Fire's [vim-fountain](https://www.vim.org/scripts/script.php?script_id=3880)
+  plugin (maintained as [kblin/vim-fountain](https://github.com/kblin/vim-fountain))
+  has provided Fountain support in Vim since 2012 and inspired the editor
+  experience this project works toward; its scene-navigation and
+  uppercase-entry mappings remain the benchmark for the planned companion
+  Neovim plugin.
 
 ## License
 
