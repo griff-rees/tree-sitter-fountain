@@ -5,6 +5,12 @@
   "repository": "https://github.com/griff-rees/tree-sitter-fountain",
   "license": "MIT",
   "packageManager": "pnpm@11.17.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "tree-sitter",
+      "tree-sitter-cli"
+    ]
+  },
   "author": {
     "name": "Dr Griffith Rees",
     "email": "grees@turing.ac.uk"
