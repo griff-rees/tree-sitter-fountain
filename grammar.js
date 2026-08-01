@@ -163,7 +163,15 @@ module.exports = grammar({
 
     synopsis: ($) => $._synopsis_line,
 
-    section: ($) => $._section_line,
+    // A section heading: 1-6 '#' markers (more = deeper nesting) and an
+    // optional title. The marker is its own node so queries can style
+    // levels — its text length is the nesting depth. The line's newline
+    // is left to the following blank-line separator.
+    section: ($) =>
+      seq(
+        field('marker', alias($._section_marker, $.section_marker)),
+        optional(field('title', alias($._any_line, $.section_title)))
+      ),
 
     page_break: ($) => $._page_break_line,
 
@@ -223,7 +231,7 @@ module.exports = grammar({
 
     _synopsis_line: ($) => token(prec(3, new RegExp(`=[^\\n]*${EOL}`))),
 
-    _section_line: ($) => token(prec(3, new RegExp(`#{1,6}[^\\n]*${EOL}`))),
+    _section_marker: ($) => token(prec(3, /#{1,6}/)),
 
     _page_break_line: ($) =>
       token(prec(6, new RegExp(`={3,}[ \\t]*${EOL}`))),

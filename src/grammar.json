@@ -299,8 +299,43 @@
       "name": "_synopsis_line"
     },
     "section": {
-      "type": "SYMBOL",
-      "name": "_section_line"
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "marker",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_section_marker"
+            },
+            "named": true,
+            "value": "section_marker"
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "title",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_any_line"
+                },
+                "named": true,
+                "value": "section_title"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
     },
     "page_break": {
       "type": "SYMBOL",
@@ -479,14 +514,14 @@
         }
       }
     },
-    "_section_line": {
+    "_section_marker": {
       "type": "TOKEN",
       "content": {
         "type": "PREC",
         "value": 3,
         "content": {
           "type": "PATTERN",
-          "value": "#{1,6}[^\\n]*(\\r?\\n)?"
+          "value": "#{1,6}"
         }
       }
     },

@@ -123,7 +123,28 @@
   {
     "type": "section",
     "named": true,
-    "fields": {}
+    "fields": {
+      "marker": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "section_marker",
+            "named": true
+          }
+        ]
+      },
+      "title": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "section_title",
+            "named": true
+          }
+        ]
+      }
+    }
   },
   {
     "type": "synopsis",
@@ -186,6 +207,14 @@
   },
   {
     "type": "note",
+    "named": true
+  },
+  {
+    "type": "section_marker",
+    "named": true
+  },
+  {
+    "type": "section_title",
     "named": true
   },
   {
