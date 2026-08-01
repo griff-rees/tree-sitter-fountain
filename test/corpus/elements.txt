@@ -1,0 +1,322 @@
+==============================
+Scene headings
+==============================
+
+INT. HOUSE - DAY
+
+EXT. BRICK'S PATIO - NIGHT
+
+est. new york skyline
+
+INT./EXT. CAR - MOVING
+
+.SNIPER SCOPE POV
+
+---
+
+(screenplay
+  (scene_heading)
+  (scene_heading)
+  (scene_heading)
+  (scene_heading)
+  (scene_heading))
+
+==============================
+Action
+==============================
+
+A gorgeous day.  The sun is shining.
+
+He looks around.
+Then he sits.
+Then he stands again.
+
+!THE CAR EXPLODES.
+
+---
+
+(screenplay
+  (action)
+  (action)
+  (action))
+
+==============================
+Lone uppercase line is action, not a character cue
+==============================
+
+BRICK AND STEEL
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Basic dialogue
+==============================
+
+BRICK
+Hello there.
+
+STEEL
+(beat)
+Are you ready?
+I said, ARE YOU READY?
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line))
+  (dialogue
+    (character)
+    (parenthetical)
+    (dialogue_line)
+    (dialogue_line)))
+
+==============================
+Dialogue with extension and dual dialogue marker
+==============================
+
+STEEL (O.S.)
+Beer's ready!
+
+BRICK
+They're coming out of the woodwork!
+
+STEEL ^
+No, we are not.
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line))
+  (dialogue
+    (character)
+    (dialogue_line))
+  (dialogue
+    (character)
+    (dialogue_line)))
+
+==============================
+Forced character
+==============================
+
+@McCLANE
+Yippie ki-yay!
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line)))
+
+==============================
+Uppercase dialogue lines stay inside the dialogue block
+==============================
+
+DAN
+THEN WHO WAS AT THE DOOR?
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line)))
+
+==============================
+Lyrics, alone and in dialogue
+==============================
+
+~Willy Wonka! Willy Wonka! The amazing chocolatier!
+
+OOMPA LOOMPA
+~Oompa loompa doompadee doo,
+~I've got another puzzle for you.
+
+---
+
+(screenplay
+  (lyric)
+  (dialogue
+    (character)
+    (lyric)
+    (lyric)))
+
+==============================
+Transitions
+==============================
+
+CUT TO:
+
+SMASH CUT TO:
+
+> Burn to White.
+
+---
+
+(screenplay
+  (transition)
+  (transition)
+  (transition))
+
+==============================
+Uppercase TO: line followed by text is action
+==============================
+
+CUT TO:
+He runs away.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Transition directly after action, with no blank line between
+==============================
+
+Steel jams on the gas.
+CUT TO:
+
+EXT. STREET - DAY
+
+---
+
+(screenplay
+  (action)
+  (transition)
+  (scene_heading))
+
+==============================
+Centered text, consecutive lines form one block
+==============================
+
+> BRICK BRADDOCK <
+> & DICK STEEL IN <
+
+> THE END <
+
+---
+
+(screenplay
+  (centered)
+  (centered))
+
+==============================
+Sections and synopses
+==============================
+
+# Act One
+
+## The Set-up
+
+= Brick and Steel meet for the last time.
+
+---
+
+(screenplay
+  (section)
+  (section)
+  (synopsis))
+
+==============================
+Notes and boneyard
+==============================
+
+He drinks. [[Is this too subtle?]]
+
+/*
+DELETED SCENE
+It was too expensive to film.
+*/
+
+The next day.
+
+---
+
+(screenplay
+  (action)
+  (boneyard)
+  (action))
+
+==============================
+Title page
+==============================
+Title: BRICK & STEEL
+Credit: Written by
+Author: Stu Maschwitz
+Contact:
+	Next Level Productions
+	1588 Mission Dr.
+
+FADE IN:
+
+Some action.
+
+---
+
+(screenplay
+  (title_page
+    (title_entry
+      (title_key)
+      (title_value))
+    (title_entry
+      (title_key)
+      (title_value))
+    (title_entry
+      (title_key)
+      (title_value))
+    (title_entry
+      (title_key)
+      (title_value)
+      (title_value)))
+  (action)
+  (action))
+
+==============================
+Final line without trailing newline
+==============================
+
+INT. HOUSE - DAY
+
+The end.
+---
+
+(screenplay
+  (scene_heading)
+  (action))
+
+==============================
+Scene heading requires a following blank line
+==============================
+
+INT. HOUSE - DAY
+He walks in without a blank line above.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Page break
+==============================
+
+The end of act one.
+
+===
+
+The start of act two.
+
+---
+
+(screenplay
+  (action)
+  (page_break)
+  (action))
