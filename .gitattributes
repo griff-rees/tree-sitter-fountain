@@ -35,3 +35,7 @@ go.sum linguist-generated
 bindings/swift/** linguist-generated
 Package.swift linguist-generated
 Package.resolved linguist-generated
+
+# The canonical sample keeps its original mixed CRLF/LF line endings,
+# which exercise the grammar's \r?\n handling.
+examples/*.fountain -text
