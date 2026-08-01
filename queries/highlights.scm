@@ -1,19 +1,51 @@
 ; Syntax highlighting for Fountain screenplays.
 ; Capture names follow the nvim-treesitter conventions:
 ; https://neovim.io/doc/user/treesitter.html#treesitter-highlight-groups
+;
+; Where a conventional group is attribute-only in common themes (e.g.
+; @markup.strong is just `bold` and @markup.italic just `italic` in
+; NvChad's base46), a coloured capture is layered underneath so the
+; element stays visible on terminals or fonts without those attributes.
 
 (scene_heading) @markup.heading.2
 
-(section) @markup.heading.1
+; Sections: the marker's length is the nesting level. A generic capture
+; covers every level; levels 1-3 are refined for themes that colour
+; @markup.heading.N distinctly.
+(section_marker) @punctuation.special
+
+(section_title) @markup.heading
+
+((section
+  marker: (section_marker) @_marker
+  title: (section_title) @markup.heading.1)
+ (#eq? @_marker "#"))
+
+((section
+  marker: (section_marker) @_marker
+  title: (section_title) @markup.heading.2)
+ (#eq? @_marker "##"))
+
+((section
+  marker: (section_marker) @_marker
+  title: (section_title) @markup.heading.3)
+ (#eq? @_marker "###"))
 
 (character) @constant
 
 (parenthetical) @string.special
 
+; Lyrics: coloured base plus the italic attribute. Deliberately @string
+; rather than @string.special so lyrics and parentheticals differ (and
+; title values use @markup.raw, keeping all three groups distinct).
+(lyric) @string
 (lyric) @markup.italic
 
 (transition) @keyword
 
+; Centered text: coloured base plus the bold attribute (bold alone is
+; invisible on already-uppercase lines like "> THE END <").
+(centered) @markup.heading
 (centered) @markup.strong
 
 (synopsis) @comment
@@ -26,4 +58,4 @@
 
 (title_key) @property
 
-(title_value) @string
+(title_value) @markup.raw

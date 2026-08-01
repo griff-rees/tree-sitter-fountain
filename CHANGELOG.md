@@ -4,11 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html). No release has
-been published yet (tracked in
-[#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15)).
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). Versions are git
+tags; registry publishing is tracked in
+[#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
 ## [Unreleased]
+
+### Added
+
+- Section headings expose their nesting: `(section (section_marker) (section_title))`,
+  with the marker's length giving the level ([#12](https://github.com/griff-rees/tree-sitter-fountain/issues/12)).
+
+### Fixed
+
+- Consecutive standalone lyric lines (a verse with no character cue above
+  it) no longer produce an ERROR node; like centered text, they merge into
+  one block.
+
+### Changed
+
+- Highlight queries layer coloured captures under attribute-only groups so
+  centered text and lyrics stay visible in themes where `@markup.strong` /
+  `@markup.italic` carry no colour, and section titles get per-level
+  heading captures ([#26](https://github.com/griff-rees/tree-sitter-fountain/issues/26)).
+
+## [0.1.0] - 2026-08-01
 
 ### Added
 
