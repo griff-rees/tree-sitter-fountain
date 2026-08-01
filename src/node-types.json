@@ -1,0 +1,199 @@
+[
+  {
+    "type": "action",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "centered",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "character",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "dialogue",
+    "named": true,
+    "fields": {
+      "character": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "character",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "dialogue_line",
+          "named": true
+        },
+        {
+          "type": "lyric",
+          "named": true
+        },
+        {
+          "type": "parenthetical",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "lyric",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "page_break",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "parenthetical",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "scene_heading",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "screenplay",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "action",
+          "named": true
+        },
+        {
+          "type": "centered",
+          "named": true
+        },
+        {
+          "type": "dialogue",
+          "named": true
+        },
+        {
+          "type": "lyric",
+          "named": true
+        },
+        {
+          "type": "page_break",
+          "named": true
+        },
+        {
+          "type": "scene_heading",
+          "named": true
+        },
+        {
+          "type": "section",
+          "named": true
+        },
+        {
+          "type": "synopsis",
+          "named": true
+        },
+        {
+          "type": "title_page",
+          "named": true
+        },
+        {
+          "type": "transition",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "section",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "synopsis",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "title_entry",
+    "named": true,
+    "fields": {
+      "key": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "title_key",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "title_value",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "title_page",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "title_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "transition",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "boneyard",
+    "named": true
+  },
+  {
+    "type": "dialogue_line",
+    "named": true
+  },
+  {
+    "type": "note",
+    "named": true
+  },
+  {
+    "type": "title_key",
+    "named": true
+  },
+  {
+    "type": "title_value",
+    "named": true
+  }
+]

@@ -1,0 +1,573 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "fountain",
+  "rules": {
+    "screenplay": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "title_page"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_blank"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_block"
+              },
+              {
+                "type": "REPEAT1",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_blank"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_block"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "_block": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "scene_heading"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "transition"
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "action"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "transition"
+            }
+          ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "centered"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "lyric"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "synopsis"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "section"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "page_break"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "dialogue"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "action"
+        }
+      ]
+    },
+    "title_page": {
+      "type": "REPEAT1",
+      "content": {
+        "type": "SYMBOL",
+        "name": "title_entry"
+      }
+    },
+    "title_entry": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "key",
+            "content": {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_title_key"
+              },
+              "named": true,
+              "value": "title_key"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "REPEAT1",
+                "content": {
+                  "type": "FIELD",
+                  "name": "value",
+                  "content": {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_any_line"
+                    },
+                    "named": true,
+                    "value": "title_value"
+                  }
+                }
+              },
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_blank"
+                  },
+                  {
+                    "type": "REPEAT",
+                    "content": {
+                      "type": "FIELD",
+                      "name": "value",
+                      "content": {
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "_any_line"
+                        },
+                        "named": true,
+                        "value": "title_value"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "dialogue": {
+      "type": "PREC_DYNAMIC",
+      "value": 2,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "character",
+            "content": {
+              "type": "SYMBOL",
+              "name": "character"
+            }
+          },
+          {
+            "type": "REPEAT1",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "parenthetical"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "lyric"
+                },
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_any_line"
+                  },
+                  "named": true,
+                  "value": "dialogue_line"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "character": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_character_line"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_forced_character_line"
+        }
+      ]
+    },
+    "parenthetical": {
+      "type": "SYMBOL",
+      "name": "_parenthetical_line"
+    },
+    "lyric": {
+      "type": "SYMBOL",
+      "name": "_lyric_line"
+    },
+    "scene_heading": {
+      "type": "PREC_DYNAMIC",
+      "value": 2,
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_scene_line"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_forced_scene_line"
+          }
+        ]
+      }
+    },
+    "transition": {
+      "type": "PREC_DYNAMIC",
+      "value": 2,
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_transition_line"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "_forced_transition_line"
+          }
+        ]
+      }
+    },
+    "centered": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "REPEAT1",
+        "content": {
+          "type": "SYMBOL",
+          "name": "_centered_line"
+        }
+      }
+    },
+    "synopsis": {
+      "type": "SYMBOL",
+      "name": "_synopsis_line"
+    },
+    "section": {
+      "type": "SYMBOL",
+      "name": "_section_line"
+    },
+    "page_break": {
+      "type": "SYMBOL",
+      "name": "_page_break_line"
+    },
+    "action": {
+      "type": "PREC_DYNAMIC",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_any_line"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_forced_action_line"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_character_line"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_transition_line"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_scene_line"
+              }
+            ]
+          },
+          {
+            "type": "REPEAT",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_any_line"
+            }
+          }
+        ]
+      }
+    },
+    "note": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\[\\[[^\\]\\n]*\\]\\]"
+        }
+      }
+    },
+    "boneyard": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 2,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\/\\*([^*]|\\*+[^*/])*\\*+\\/"
+        }
+      }
+    },
+    "_scene_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 5,
+        "content": {
+          "type": "PATTERN",
+          "value": "([Ii][Nn][Tt]\\.?\\/[Ee][Xx][Tt]|[Ee][Xx][Tt]|[Ee][Ss][Tt]|[Ii][Nn][Tt]|[Ii]\\/[Ee])[. ][^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_forced_scene_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\.[^.\\s][^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_transition_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 4,
+        "content": {
+          "type": "PATTERN",
+          "value": "[A-Z][A-Z0-9 .]*TO:[ \\t]*\\r?\\n"
+        }
+      }
+    },
+    "_forced_transition_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": ">[^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_centered_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 4,
+        "content": {
+          "type": "PATTERN",
+          "value": ">[ \\t]*[^<\\n]*<[ \\t]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_character_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "[A-Z0-9 .'\\-]*[A-Z][A-Z0-9 .'\\-]*(\\([^()\\r\\n]*\\)[ \\t]*)*(\\^)?[ \\t]*\\r?\\n"
+        }
+      }
+    },
+    "_forced_character_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "@[^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_parenthetical_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\([^()\\n]*\\)[ \\t]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_lyric_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "~[^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_synopsis_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "=[^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_section_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "#{1,6}[^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_page_break_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 6,
+        "content": {
+          "type": "PATTERN",
+          "value": "={3,}[ \\t]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_forced_action_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "![^\\n]*(\\r?\\n)?"
+        }
+      }
+    },
+    "_title_key": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 5,
+        "content": {
+          "type": "PATTERN",
+          "value": "([Dd][Rr][Aa][Ff][Tt] [Dd][Aa][Tt][Ee]|[Tt][Ii][Tt][Ll][Ee]|[Cc][Rr][Ee][Dd][Ii][Tt]|[Aa][Uu][Tt][Hh][Oo][Rr][Ss]|[Aa][Uu][Tt][Hh][Oo][Rr]|[Ss][Oo][Uu][Rr][Cc][Ee]|[Cc][Oo][Nn][Tt][Aa][Cc][Tt]|[Nn][Oo][Tt][Ee][Ss]|[Cc][Oo][Pp][Yy][Rr][Ii][Gg][Hh][Tt]|[Rr][Ee][Vv][Ii][Ss][Ii][Oo][Nn]|[Dd][Aa][Tt][Ee]):[ \\t]*"
+        }
+      }
+    },
+    "_any_line": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "[^\\r\\n]+(\\r?\\n)?"
+      }
+    },
+    "_blank": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "[ \\t]*\\r?\\n"
+      }
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "[ \\t]+"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "note"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "boneyard"
+    }
+  ],
+  "conflicts": [
+    [
+      "character",
+      "action"
+    ],
+    [
+      "scene_heading",
+      "action"
+    ],
+    [
+      "transition",
+      "action"
+    ]
+  ],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": []
+}

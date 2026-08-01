@@ -1,0 +1,39 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). No release has
+been published yet (tracked in
+[#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15)).
+
+## [Unreleased]
+
+### Added
+
+- Working grammar for the full block-level [Fountain syntax](https://fountain.io/syntax):
+  title pages, scene headings, action, character cues and dialogue (including
+  extensions, forced `@` cues and the dual-dialogue `^` marker),
+  parentheticals, lyrics, transitions, centered text, sections, synopses,
+  page breaks, notes and boneyards.
+- Corpus test suite (`test/corpus/`) covering every element type, plus the
+  canonical Brick & Steel sample in `examples/`, which parses with zero
+  errors.
+- Neovim syntax highlighting queries (`queries/highlights.scm`).
+- Project scaffolding and bindings for Node, Rust, Python, Go, Swift and C.
+- CI workflow: regenerates the parser (verifying `src/` is in sync), runs the
+  corpus tests, parses the examples, and runs the node binding tests on Linux
+  and macOS.
+- README, MIT license file, and contributing guidance.
+
+### Changed
+
+- Rewrote the draft grammar with a line-oriented design: whole lines are
+  lexed as single tokens, blank lines separate blocks, and the spec's
+  lookahead-dependent disambiguation (character cue vs. action) is resolved
+  with GLR conflicts and dynamic precedence instead of an external scanner.
+  All regexes are Rust-`regex`-compatible, so `tree-sitter generate` runs
+  cleanly (the previous draft failed to generate at all).
+- CRLF line endings and files without a trailing newline now parse
+  correctly.

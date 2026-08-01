@@ -1,0 +1,37 @@
+{
+  "grammars": [
+    {
+      "name": "fountain",
+      "camelcase": "fountain",
+      "scope": "source.fountain",
+      "file-types": [
+        "txt",
+        "fountain",
+        "spmd"
+      ],
+      "injection-regex": "^fountain$"
+    }
+  ],
+  "metadata": {
+    "version": "1.1.0",
+    "license": "MIT",
+    "description": "A markup syntax for screenplays.",
+    "authors": [
+      {
+        "name": "Dr Griffith Rees",
+        "email": "grees@turing.ac.uk"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/griff-rees/tree-sitter-fountain"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true
+  }
+}
