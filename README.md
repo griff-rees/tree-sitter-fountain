@@ -57,13 +57,13 @@ for VS Code).
 
 ## Development
 
-Requires [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io).
+Requires [Node.js](https://nodejs.org) (npm ships with it).
 
 ```sh
-pnpm install                 # fetches the tree-sitter CLI
-pnpm exec tree-sitter generate   # regenerate src/ after editing grammar.js
-pnpm exec tree-sitter test       # run the corpus tests in test/corpus/
-pnpm exec tree-sitter parse examples/brick-and-steel.fountain
+npm install                  # fetches the tree-sitter CLI
+npx tree-sitter generate     # regenerate src/ after editing grammar.js
+npx tree-sitter test         # run the corpus tests in test/corpus/
+npx tree-sitter parse examples/brick-and-steel.fountain
 ```
 
 Note that the tree-sitter CLI parses the regular expressions in `grammar.js`
@@ -87,7 +87,7 @@ Issues and pull requests are very welcome — extra test cases in
 `test/corpus/` (real-world screenplays that misparse are especially
 valuable), the missing inline syntax above, and further editor queries
 (`folds.scm`, `indents.scm`) are all good places to start. Please run
-`pnpm exec tree-sitter test` before submitting, and follow
+`npx tree-sitter test` before submitting, and follow
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for
 commit messages. Contributors are expected to follow the
 [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).

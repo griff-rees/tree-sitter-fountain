@@ -14,19 +14,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install
+          cache: npm
+      - run: npm ci
       - name: Verify generated parser is in sync with grammar.js
         run: |
-          pnpm exec tree-sitter generate
+          npx tree-sitter generate
           git diff --exit-code -- src
       - name: Run corpus tests
-        run: pnpm exec tree-sitter test
+        run: npx tree-sitter test
       - name: Parse example screenplays
-        run: pnpm exec tree-sitter parse examples/*.fountain --quiet --stat
+        run: npx tree-sitter parse examples/*.fountain --quiet --stat
       - name: Run node binding tests
-        run: pnpm test
+        run: npm test
