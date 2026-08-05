@@ -14,6 +14,10 @@
 
 (scene_prefix) @keyword
 
+; The location/time separator dash, matching the prefix colour.
+(scene_heading
+  "-" @keyword)
+
 (location) @markup.heading.2
 
 (time) @constant

@@ -301,8 +301,13 @@
                     "type": "SEQ",
                     "members": [
                       {
-                        "type": "SYMBOL",
-                        "name": "_scene_dash"
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "_scene_dash"
+                        },
+                        "named": false,
+                        "value": "-"
                       },
                       {
                         "type": "CHOICE",

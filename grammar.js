@@ -199,7 +199,12 @@ module.exports = grammar({
           seq(
             field('prefix', alias($._scene_prefix, $.scene_prefix)),
             optional(field('location', $.location)),
-            optional(seq($._scene_dash, optional(field('time', $.time)))),
+            // The separator dash is aliased to a visible "-" node so
+            // highlight queries can colour it; the dashes inside a
+            // hyphenated location stay hidden.
+            optional(
+              seq(alias($._scene_dash, '-'), optional(field('time', $.time)))
+            ),
             optional(field('number', alias($._scene_number, $.scene_number))),
             optional($._scene_eol)
           ),

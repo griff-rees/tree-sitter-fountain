@@ -15,7 +15,8 @@ tags; registry publishing is tracked in
 - Scene headings are structured: the prefix (`INT.`, `EXT.`, …), location,
   time-of-day (the segment after the last free ` - ` dash) and scene number
   (`#1#`) are separate child nodes, each optional except the prefix, with
-  matching highlight captures. Forced `.HEADING` lines remain a single
+  matching highlight captures (the separator dash is coloured like the
+  prefix). Forced `.HEADING` lines remain a single
   unstructured node
   ([#21](https://github.com/griff-rees/tree-sitter-fountain/issues/21),
   [#10](https://github.com/griff-rees/tree-sitter-fountain/issues/10)).

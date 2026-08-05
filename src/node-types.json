@@ -1,5 +1,10 @@
 [
   {
+    "type": "-",
+    "named": false,
+    "fields": {}
+  },
+  {
     "type": "action",
     "named": true,
     "fields": {}
