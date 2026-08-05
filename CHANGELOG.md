@@ -8,6 +8,21 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Changed
+
+- Development toolchain: tree-sitter-cli upgraded to 0.26 (parser
+  regenerated, language ABI 15) with the node, Rust and Python binding
+  runtimes aligned to match; releases now bump every package manifest
+  with `npx tree-sitter version`, documented in the README
+  ([#33](https://github.com/griff-rees/tree-sitter-fountain/issues/33)).
+
+### Fixed
+
+- Author email updated across the package metadata
+  ([#7](https://github.com/griff-rees/tree-sitter-fountain/issues/7)).
+
 ## [0.3.1] - 2026-08-05
 
 ### Fixed

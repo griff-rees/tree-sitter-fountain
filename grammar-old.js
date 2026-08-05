@@ -1,6 +1,6 @@
 /**
  * @file A markup syntax for screenplays.
- * @author Dr Griffith Rees <grees@turing.ac.uk>
+ * @author Dr Griffith Rees <info@box3spool5.org>
  * @license MIT
  */
 

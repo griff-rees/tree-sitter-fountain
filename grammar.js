@@ -1,7 +1,7 @@
 /**
  * @file Tree-sitter grammar for Fountain (https://fountain.io), a plain-text
  * screenplay markup format.
- * @author Dr Griffith Rees <grees@turing.ac.uk>
+ * @author Dr Griffith Rees <info@box3spool5.org>
  * @license MIT
  *
  * The element definitions and disambiguation rules implemented here follow
