@@ -8,6 +8,18 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Added
+
+- Scene headings are structured: the prefix (`INT.`, `EXT.`, …), location,
+  time-of-day (the segment after the last free ` - ` dash) and scene number
+  (`#1#`) are separate child nodes, each optional except the prefix, with
+  matching highlight captures. Forced `.HEADING` lines remain a single
+  unstructured node
+  ([#21](https://github.com/griff-rees/tree-sitter-fountain/issues/21),
+  [#10](https://github.com/griff-rees/tree-sitter-fountain/issues/10)).
+
 ## [0.2.0] - 2026-08-02
 
 ### Added
@@ -52,7 +64,9 @@ tags; registry publishing is tracked in
 - Rewrote the draft grammar with a line-oriented design: whole lines are
   lexed as single tokens, blank lines separate blocks, and the spec's
   lookahead-dependent disambiguation (character cue vs. action) is resolved
-  with GLR conflicts and dynamic precedence instead of an external scanner.
+  with GLR ("generalized left-to-right, rightmost-derivation") conflicts and
+  dynamic precedence instead of an external scanner (see the
+  [README glossary](README.md#glossary)).
   All regexes are Rust-`regex`-compatible, so `tree-sitter generate` runs
   cleanly (the previous draft failed to generate at all).
 - CRLF line endings and files without a trailing newline now parse
