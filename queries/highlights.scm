@@ -7,7 +7,22 @@
 ; NvChad's base46), a coloured capture is layered underneath so the
 ; element stays visible on terminals or fonts without those attributes.
 
+; Scene headings: the whole line gets the heading colour as a base
+; (forced ".HEADING" lines have no child nodes, so this is all they
+; get), then the structured parts are coloured individually.
 (scene_heading) @markup.heading.2
+
+(scene_prefix) @keyword
+
+; The location/time separator dash, matching the prefix colour.
+(scene_heading
+  "-" @keyword)
+
+(location) @markup.heading.2
+
+(time) @constant
+
+(scene_number) @number
 
 ; Sections: the marker's length is the nesting level. A generic capture
 ; covers every level; levels 1-3 are refined for themes that colour

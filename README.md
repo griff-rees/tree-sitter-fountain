@@ -10,7 +10,10 @@ sample screenplay with no errors (see `examples/` and `test/corpus/`).
 ## Supported syntax
 
 - Title pages (`Title:`, `Credit:`, `Author:`, …, including indented multi-line values)
-- Scene headings (`INT.`/`EXT.`/`EST.`/`I/E` and forced `.HEADING`)
+- Scene headings (`INT.`/`EXT.`/`EST.`/`I/E` and forced `.HEADING`), with
+  the prefix, location, time-of-day (after the last free ` - ` dash) and
+  scene number (`#1#`) exposed as separate child nodes; forced headings
+  remain a single unstructured node
 - Action, including forced `!ACTION`
 - Character cues and dialogue, including extensions (`(V.O.)`), forced `@Characters`,
   and the `^` dual-dialogue marker
@@ -25,8 +28,8 @@ sample screenplay with no errors (see `examples/` and `test/corpus/`).
 - Notes (`[[...]]`) and boneyards (`/* ... */`)
 
 Not yet parsed as distinct nodes: inline emphasis (`*italics*`, `**bold**`,
-`_underline_`) inside lines, multi-line notes, and scene numbers (`#1#`) —
-these currently remain part of their containing line. Contributions welcome.
+`_underline_`) inside lines, and multi-line notes — these currently remain
+part of their containing line. Contributions welcome.
 
 ## Using with Neovim
 
@@ -78,8 +81,30 @@ the blank lines around it — an uppercase line is a character cue only when
 the line below it is not blank, otherwise it is action. The grammar
 therefore lexes whole lines as single tokens (each including its trailing
 newline), treats blank lines as block separators, and resolves the
-lookahead-dependent cases with GLR conflicts and dynamic precedence instead
-of an external C scanner. See the commentary in `grammar.js` for details.
+lookahead-dependent cases with [GLR](#glossary) conflicts and dynamic
+precedence instead of an external C scanner. Scene headings are the one
+exception to the line-as-one-token rule: they are split into smaller
+tokens so their prefix, location, time and scene number appear as
+separate nodes. See the commentary in `grammar.js` for details.
+
+### Glossary
+
+- **GLR parsing** — short for "generalized left-to-right,
+  rightmost-derivation" parsing. An ordinary LR parser reads tokens left
+  to right and must commit to a single interpretation at every step,
+  with only a fixed peek ahead. A *generalized* LR parser lifts that
+  restriction: at a declared ambiguity it follows every viable
+  interpretation in parallel and discards each one as soon as later
+  input rules it out. Tree-sitter switches to GLR parsing wherever a
+  grammar declares a
+  [`conflicts` entry](https://tree-sitter.github.io/tree-sitter/creating-parsers/3-writing-the-grammar#using-conflicts),
+  and uses the grammar's `prec.dynamic` values to choose a winner when
+  more than one interpretation survives to the end. For more depth see
+  the [GLR parser article](https://en.wikipedia.org/wiki/GLR_parser) on
+  Wikipedia, and tree-sitter's implementation in
+  [`lib/src/parser.c`](https://github.com/tree-sitter/tree-sitter/blob/master/lib/src/parser.c)
+  and [`lib/src/stack.c`](https://github.com/tree-sitter/tree-sitter/blob/master/lib/src/stack.c)
+  (the latter holds the parallel parse stacks).
 
 ## Contributing
 

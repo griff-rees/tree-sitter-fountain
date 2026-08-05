@@ -10,12 +10,27 @@
  * Approach: in Fountain, the meaning of each line of text in the file is
  * determined by its content and by the blank lines around it — for example,
  * an uppercase line is a character cue only when the line below it is not
- * blank; otherwise it is action. This grammar therefore treats every
+ * blank; otherwise it is action. This grammar therefore treats each
  * text line as a single token that includes its trailing newline, and
  * treats a blank line as its own `_blank` token separating blocks.
- * Disambiguation that needs lookahead (character cue vs. action, above) is
- * handled with declared GLR conflicts plus dynamic precedence, avoiding an
- * external C scanner.
+ * (Scene headings are the one exception: they are split into smaller
+ * tokens so their prefix, location and time appear as separate nodes —
+ * see the scene heading rules below.)
+ *
+ * Where deciding a line's meaning needs a peek at the NEXT line (the
+ * character cue vs. action case above), the grammar declares a conflict,
+ * which makes tree-sitter parse that stretch with GLR parsing [1]: the
+ * parser follows the possible readings of the line in parallel and
+ * drops each one as soon as a later token rules it out. If more than
+ * one reading survives, the one whose rules carry the most dynamic
+ * precedence (`prec.dynamic`) wins. This is what lets the grammar avoid
+ * an external C scanner.
+ *
+ * [1] GLR ("generalized left-to-right, rightmost-derivation") parsing:
+ *     an ordinary LR parser must commit to a single reading at every
+ *     step; the generalized form may pursue several at once. See the
+ *     Glossary section of README.md for a fuller definition and links
+ *     to tree-sitter's implementation.
  *
  * Earlier drafts of this grammar (preserved in `grammar-old.js`) drew on
  * UserNobody14's tree-sitter-fountain:
@@ -82,8 +97,22 @@ module.exports = grammar({
 
   conflicts: ($) => [
     [$.character, $.action],
-    [$.scene_heading, $.action],
+    // The heading-or-action fork: a heading-shaped line may instead be
+    // the first line of an action paragraph (decided by whether a blank
+    // line follows). While both readings are alive, each part of the
+    // structured heading is also, in the action reading, just another
+    // token absorbed by the hidden `_scene_start_line` rule.
+    [$.scene_heading, $._scene_start_line],
+    [$.location, $._scene_start_line],
     [$.transition, $.action],
+    // Inside a scene heading, a dash can either extend the location
+    // (locations may contain hyphens, as in "DEAD-END STREET") or
+    // introduce the time-of-day ("... - DAY"). The parser follows both
+    // readings (GLR parsing; see the header comment). `time` carries
+    // extra dynamic precedence, so the reading that splits at the LAST
+    // dash wins: a split at any earlier dash cannot parse the rest of
+    // the line and dies off.
+    [$.location],
   ],
 
   rules: {
@@ -153,8 +182,43 @@ module.exports = grammar({
 
     // === Single-line blocks ===
 
+    // A scene heading is structured per the spec's conventions: a
+    // recognised prefix (INT., EXT., ...), an optional location, an
+    // optional time-of-day after the conventional " - " separator, and
+    // an optional #scene number#. Only the prefix is required — "EXT."
+    // or "INT. HOUSE" alone are valid headings. Locations may contain
+    // hyphens, so the time is the segment after the LAST dash (see the
+    // `conflicts` note). Forced headings (".MONTAGE") stay a single
+    // unstructured token: a token's regular expression cannot peek past
+    // the token's own end, so a bare "." marker token could not tell
+    // ".MONTAGE" apart from an action line starting with "...".
     scene_heading: ($) =>
-      prec.dynamic(2, choice($._scene_line, $._forced_scene_line)),
+      prec.dynamic(
+        2,
+        choice(
+          seq(
+            field('prefix', alias($._scene_prefix, $.scene_prefix)),
+            optional(field('location', $.location)),
+            // The separator dash is aliased to a visible "-" node so
+            // highlight queries can colour it; the dashes inside a
+            // hyphenated location stay hidden.
+            optional(
+              seq(alias($._scene_dash, '-'), optional(field('time', $.time)))
+            ),
+            optional(field('number', alias($._scene_number, $.scene_number))),
+            optional($._scene_eol)
+          ),
+          $._forced_scene_line
+        )
+      ),
+
+    location: ($) =>
+      seq(
+        repeat1($._scene_word),
+        repeat(seq($._scene_dash, repeat1($._scene_word)))
+      ),
+
+    time: ($) => prec.dynamic(1, repeat1($._scene_word)),
 
     transition: ($) =>
       prec.dynamic(2, choice($._transition_line, $._forced_transition_line)),
@@ -180,8 +244,9 @@ module.exports = grammar({
     //
     // Action is the fall-through element. Its first line may also absorb
     // tokens that lexed as a character cue, transition or scene heading
-    // but turned out (via GLR) not to be followed by what those elements
-    // require; per the spec they are then plain action.
+    // but turned out not to be followed by what those elements require
+    // (the parser was following both readings in parallel — GLR parsing,
+    // see the header comment); per the spec such lines are plain action.
     action: ($) =>
       prec.dynamic(
         0,
@@ -191,7 +256,7 @@ module.exports = grammar({
             $._forced_action_line,
             $._character_line,
             $._transition_line,
-            $._scene_line
+            $._scene_start_line
           ),
           repeat($._any_line)
         )
@@ -205,8 +270,53 @@ module.exports = grammar({
 
     // === Line tokens (each includes its trailing newline) ===
 
-    _scene_line: ($) =>
-      token(prec(5, new RegExp(`${SCENE_PREFIX}[. ][^\\n]*${EOL}`))),
+    // A would-be scene heading absorbed as action's first line. While
+    // the parser is still following both the heading reading and the
+    // action reading of a line (GLR parsing; see the header comment),
+    // the two readings must consume identical tokens, because the lexer
+    // produces a single token stream for both. This rule therefore
+    // mirrors the tokens of `scene_heading` — but accepts them in any
+    // order, so a malformed heading falls through to plain action
+    // instead of becoming a parse error.
+    _scene_start_line: ($) =>
+      seq(
+        $._scene_prefix,
+        repeat(choice($._scene_word, $._scene_dash, $._scene_number)),
+        optional($._scene_eol)
+      ),
+
+    _scene_prefix: ($) =>
+      token(prec(5, new RegExp(`${SCENE_PREFIX}[. ]`))),
+
+    // A run of non-space characters in a scene heading. May contain
+    // internal hyphens ("DEAD-END"); only a free-standing dash acts as
+    // the location/time separator.
+    //
+    // Precedence 5 (like the prefix) so that an uppercase word wins
+    // over the tokens that also stay in the running mid-heading: the
+    // catch-all `_any_line` (action may stop absorbing heading tokens
+    // at any point, so it is always a valid alternative here) and the
+    // transition token (valid because a transition may follow an
+    // action block directly; it matches uppercase text while hoping
+    // for a final "TO:", and while a higher-precedence token is still
+    // a candidate the lexer keeps scanning past the end of the word,
+    // letting `_any_line` swallow the whole rest of the line).
+    _scene_word: ($) => token(prec(5, /[^ \t\r\n-][^ \t\r\n]*/)),
+
+    // One higher than `_scene_word`, which matches the same
+    // characters, so a well-formed "#1#" wins; an unclosed "#1" still
+    // falls back to being a word.
+    _scene_number: ($) => token(prec(6, /#[0-9A-Za-z.\-]+#/)),
+
+    // The location/time separator dash.
+    _scene_dash: ($) => token(prec(1, '-')),
+
+    // The heading's own newline. Both this token and `_blank` can match
+    // a newline at the end of a heading; the higher precedence here
+    // makes the lexer pick this one, so the heading always consumes its
+    // own line ending and a genuinely blank line is still required
+    // after it to close the block.
+    _scene_eol: ($) => token(prec(1, new RegExp(NL))),
 
     _forced_scene_line: ($) =>
       token(prec(3, new RegExp(`\\.[^.\\s][^\\n]*${EOL}`))),
