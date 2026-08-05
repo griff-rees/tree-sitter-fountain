@@ -15,11 +15,85 @@ INT./EXT. CAR - MOVING
 ---
 
 (screenplay
-  (scene_heading)
-  (scene_heading)
-  (scene_heading)
-  (scene_heading)
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time))
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time))
+  (scene_heading
+    (scene_prefix)
+    (location))
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time))
   (scene_heading))
+
+==============================
+Scene heading parts are each optional
+==============================
+
+EXT.
+
+INT. HOUSE
+
+INT. HOUSE -
+
+---
+
+(screenplay
+  (scene_heading
+    (scene_prefix))
+  (scene_heading
+    (scene_prefix)
+    (location))
+  (scene_heading
+    (scene_prefix)
+    (location)))
+
+==============================
+Scene numbers
+==============================
+
+EXT. PALATIAL MANSION - DAY #4#
+
+INT. HOUSE #1A#
+
+---
+
+(screenplay
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time)
+    (scene_number))
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (scene_number)))
+
+==============================
+Hyphenated locations split the time at the last free dash
+==============================
+
+EXT. DEAD-END STREET - NIGHT
+
+INT. CORRIDOR - LEVEL B-2
+
+---
+
+(screenplay
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time))
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time)))
 
 ==============================
 Action
@@ -190,7 +264,10 @@ EXT. STREET - DAY
 (screenplay
   (action)
   (transition)
-  (scene_heading))
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time)))
 
 ==============================
 Centered text, consecutive lines form one block
@@ -301,7 +378,10 @@ The end.
 ---
 
 (screenplay
-  (scene_heading)
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time))
   (action))
 
 ==============================

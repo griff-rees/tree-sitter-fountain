@@ -49,6 +49,11 @@
     }
   },
   {
+    "type": "location",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "lyric",
     "named": true,
     "fields": {}
@@ -66,7 +71,48 @@
   {
     "type": "scene_heading",
     "named": true,
-    "fields": {}
+    "fields": {
+      "location": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "location",
+            "named": true
+          }
+        ]
+      },
+      "number": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "scene_number",
+            "named": true
+          }
+        ]
+      },
+      "prefix": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "scene_prefix",
+            "named": true
+          }
+        ]
+      },
+      "time": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "time",
+            "named": true
+          }
+        ]
+      }
+    }
   },
   {
     "type": "screenplay",
@@ -152,6 +198,11 @@
     "fields": {}
   },
   {
+    "type": "time",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "title_entry",
     "named": true,
     "fields": {
@@ -198,6 +249,10 @@
     "fields": {}
   },
   {
+    "type": "-",
+    "named": false
+  },
+  {
     "type": "boneyard",
     "named": true
   },
@@ -207,6 +262,14 @@
   },
   {
     "type": "note",
+    "named": true
+  },
+  {
+    "type": "scene_number",
+    "named": true
+  },
+  {
+    "type": "scene_prefix",
     "named": true
   },
   {

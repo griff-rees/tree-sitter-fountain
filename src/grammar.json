@@ -263,14 +263,152 @@
         "type": "CHOICE",
         "members": [
           {
-            "type": "SYMBOL",
-            "name": "_scene_line"
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "prefix",
+                "content": {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_scene_prefix"
+                  },
+                  "named": true,
+                  "value": "scene_prefix"
+                }
+              },
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "FIELD",
+                    "name": "location",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "location"
+                    }
+                  },
+                  {
+                    "type": "BLANK"
+                  }
+                ]
+              },
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SEQ",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "_scene_dash"
+                      },
+                      {
+                        "type": "CHOICE",
+                        "members": [
+                          {
+                            "type": "FIELD",
+                            "name": "time",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "time"
+                            }
+                          },
+                          {
+                            "type": "BLANK"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "BLANK"
+                  }
+                ]
+              },
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "FIELD",
+                    "name": "number",
+                    "content": {
+                      "type": "ALIAS",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "_scene_number"
+                      },
+                      "named": true,
+                      "value": "scene_number"
+                    }
+                  },
+                  {
+                    "type": "BLANK"
+                  }
+                ]
+              },
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_scene_eol"
+                  },
+                  {
+                    "type": "BLANK"
+                  }
+                ]
+              }
+            ]
           },
           {
             "type": "SYMBOL",
             "name": "_forced_scene_line"
           }
         ]
+      }
+    },
+    "location": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "REPEAT1",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_scene_word"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_scene_dash"
+              },
+              {
+                "type": "REPEAT1",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_scene_word"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "time": {
+      "type": "PREC_DYNAMIC",
+      "value": 1,
+      "content": {
+        "type": "REPEAT1",
+        "content": {
+          "type": "SYMBOL",
+          "name": "_scene_word"
+        }
       }
     },
     "transition": {
@@ -375,7 +513,7 @@
               },
               {
                 "type": "SYMBOL",
-                "name": "_scene_line"
+                "name": "_scene_start_line"
               }
             ]
           },
@@ -411,14 +549,99 @@
         }
       }
     },
-    "_scene_line": {
+    "_scene_start_line": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_scene_prefix"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_scene_word"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_scene_dash"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_scene_number"
+              }
+            ]
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_scene_eol"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
+    },
+    "_scene_prefix": {
       "type": "TOKEN",
       "content": {
         "type": "PREC",
         "value": 5,
         "content": {
           "type": "PATTERN",
-          "value": "([Ii][Nn][Tt]\\.?\\/[Ee][Xx][Tt]|[Ee][Xx][Tt]|[Ee][Ss][Tt]|[Ii][Nn][Tt]|[Ii]\\/[Ee])[. ][^\\n]*(\\r?\\n)?"
+          "value": "([Ii][Nn][Tt]\\.?\\/[Ee][Xx][Tt]|[Ee][Xx][Tt]|[Ee][Ss][Tt]|[Ii][Nn][Tt]|[Ii]\\/[Ee])[. ]"
+        }
+      }
+    },
+    "_scene_word": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 5,
+        "content": {
+          "type": "PATTERN",
+          "value": "[^ \\t\\r\\n-][^ \\t\\r\\n]*"
+        }
+      }
+    },
+    "_scene_number": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 6,
+        "content": {
+          "type": "PATTERN",
+          "value": "#[0-9A-Za-z.\\-]+#"
+        }
+      }
+    },
+    "_scene_dash": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "STRING",
+          "value": "-"
+        }
+      }
+    },
+    "_scene_eol": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\r?\\n"
         }
       }
     },
@@ -601,11 +824,18 @@
     ],
     [
       "scene_heading",
-      "action"
+      "_scene_start_line"
+    ],
+    [
+      "location",
+      "_scene_start_line"
     ],
     [
       "transition",
       "action"
+    ],
+    [
+      "location"
     ]
   ],
   "precedences": [],
