@@ -1,7 +1,7 @@
 [package]
 name = "tree-sitter-fountain"
 description = "A markup syntax for screenplays."
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 license = "MIT"
 readme = "README.md"

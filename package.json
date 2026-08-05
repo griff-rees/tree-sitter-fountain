@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-fountain",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A markup syntax for screenplays.",
   "repository": "https://github.com/griff-rees/tree-sitter-fountain",
   "license": "MIT",
