@@ -335,6 +335,65 @@ The next day.
   (action))
 
 ==============================
+Boneyard opening mid-line and closing on a later line
+==============================
+
+The quick brown fox jumps over the lazy dog. /*
+Commented middle line here.
+*/
+
+Next action block.
+
+---
+
+(screenplay
+  (action)
+  (boneyard)
+  (action))
+
+==============================
+Boneyard within a single action line
+==============================
+
+He runs /* too fast? */ away.
+
+---
+
+(screenplay
+  (action
+    (boneyard)))
+
+==============================
+Unclosed boneyard and slashes are plain text
+==============================
+
+An unclosed /* comment stays text.
+
+A line with a URL https://example.com in it.
+
+---
+
+(screenplay
+  (action)
+  (action))
+
+==============================
+Boneyard inside dialogue
+==============================
+
+BOB
+Hi /* aside */ there.
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line)
+    (boneyard)
+    (dialogue_line)))
+
+==============================
 Title page
 ==============================
 Title: BRICK & STEEL
