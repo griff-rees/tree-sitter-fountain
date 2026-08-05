@@ -8,6 +8,17 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Fixed
+
+- A transition-shaped line with trailing whitespace after the colon
+  (`CUT TO: `) now de-forces to action, as the spec prescribes — the
+  trailing space is Fountain's escape hatch for keeping such a line out
+  of transition styling
+  ([#24](https://github.com/griff-rees/tree-sitter-fountain/issues/24),
+  completing it: the mid-line boneyard half was fixed in 0.3.1).
+
 ## [0.3.2] - 2026-08-05
 
 ### Changed

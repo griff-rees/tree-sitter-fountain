@@ -321,8 +321,11 @@ module.exports = grammar({
     _forced_scene_line: ($) =>
       token(prec(3, new RegExp(`\\.[^.\\s][^\\n]*${EOL}`))),
 
+    // "TO:" must be immediately followed by the newline: per the spec, a
+    // trailing space after the colon de-forces the line to action ("the
+    // only way to prevent an uppercase TO: line becoming a transition").
     _transition_line: ($) =>
-      token(prec(4, new RegExp(`[A-Z][A-Z0-9 .]*TO:[ \\t]*${NL}`))),
+      token(prec(4, new RegExp(`[A-Z][A-Z0-9 .]*TO:${NL}`))),
 
     _forced_transition_line: ($) =>
       token(prec(3, new RegExp(`>[^\\n]*${EOL}`))),
