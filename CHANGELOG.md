@@ -8,7 +8,7 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
-## [Unreleased]
+## [0.3.3] - 2026-08-05
 
 ### Fixed
 
