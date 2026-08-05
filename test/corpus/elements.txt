@@ -251,6 +251,20 @@ He runs away.
   (action))
 
 ==============================
+Uppercase TO: line with a trailing space is action
+==============================
+
+CUT TO: 
+
+He runs.
+
+---
+
+(screenplay
+  (action)
+  (action))
+
+==============================
 Transition directly after action, with no blank line between
 ==============================
 
