@@ -259,7 +259,8 @@
   },
   {
     "type": "boneyard",
-    "named": true
+    "named": true,
+    "extra": true
   },
   {
     "type": "dialogue_line",
@@ -267,7 +268,8 @@
   },
   {
     "type": "note",
-    "named": true
+    "named": true,
+    "extra": true
   },
   {
     "type": "scene_number",

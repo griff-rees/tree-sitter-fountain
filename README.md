@@ -69,6 +69,17 @@ npx tree-sitter test         # run the corpus tests in test/corpus/
 npx tree-sitter parse examples/brick-and-steel.fountain
 ```
 
+### Releasing
+
+Each merged PR gets its own release, so regressions can be bisected by
+version. The flow: promote the changelog's Unreleased section to the new
+version, run `npx tree-sitter version X.Y.Z` (which updates
+`package.json`, `tree-sitter.json`, `Cargo.toml`, `pyproject.toml` and
+the generated build files in one step), commit, then create an annotated
+tag `vX.Y.Z` and push it. New features bump the minor digit, fixes the
+patch digit. Registry publishing is tracked in
+[#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
+
 Note that the tree-sitter CLI parses the regular expressions in `grammar.js`
 with the syntax of Rust's [`regex` crate](https://docs.rs/regex/latest/regex/#syntax),
 which is stricter than JavaScript's (e.g. `[` must be escaped inside a
