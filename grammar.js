@@ -354,7 +354,19 @@ module.exports = grammar({
 
     // Fallback: any non-blank line (trailing newline optional, so a final
     // line at end-of-file still parses).
-    _any_line: ($) => token(new RegExp(`[^\\r\\n]+(${NL})?`)),
+    //
+    // The token stops before "/*", so a boneyard that opens mid-line —
+    // even one closing on a later line — is picked up by the `boneyard`
+    // extra instead of being swallowed by the line (#31). Token regular
+    // expressions cannot peek ahead, so "not containing /*" is spelled
+    // out as: runs of either a non-slash character or a slash followed
+    // by a non-star. The lone "/" alternative keeps a slash at the end
+    // of a line (or an unclosed "/*") lexing as plain text — the slash
+    // becomes its own little _any_line token — rather than an error.
+    // (A trailing /? on the main alternative would be wrong: longest-
+    // match would then swallow the opening slash of a real boneyard.)
+    _any_line: ($) =>
+      token(new RegExp(`(([^/\\r\\n]|/[^*\\r\\n])+|/)(${NL})?`)),
 
     _blank: ($) => token(new RegExp(`[ \\t]*${NL}`)),
   },

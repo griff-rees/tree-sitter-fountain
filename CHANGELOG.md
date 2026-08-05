@@ -8,6 +8,22 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Fixed
+
+- Boneyards that open mid-line are now recognised, including ones that
+  close on a later line — previously the whole `/* ... */` span was
+  swallowed by the containing line, so "commented-out" text still parsed
+  as screenplay content
+  ([#31](https://github.com/griff-rees/tree-sitter-fountain/issues/31);
+  also the boneyard half of the mid-line case in
+  [#24](https://github.com/griff-rees/tree-sitter-fountain/issues/24)).
+  An unclosed `/*` remains plain text. Known limitation: when a boneyard
+  closes exactly at a line end, the newline after it ends the block, so
+  an action paragraph continuing on the next line parses as two action
+  nodes.
+
 ## [0.3.0] - 2026-08-05
 
 ### Added
