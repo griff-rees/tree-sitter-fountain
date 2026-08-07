@@ -50,14 +50,26 @@
 
 (parenthetical) @string.special
 
-; Inline emphasis (in action and dialogue text): attribute captures
-; only, no colour base, so *italic*/**bold**/_underline_ stay legible
-; against whatever colour the surrounding action/dialogue text has.
-; ***bold italics*** gets both attributes layered together.
+; Inline emphasis (in action and dialogue text): coloured base plus the
+; matching attribute(s), same pattern as lyrics/centered text below.
+; This one matters most for italic specifically: underline is drawn as
+; a literal line by nearly every terminal regardless of font, and bold
+; usually falls back to a brightened colour even without a bold font
+; face, but italic has no such fallback — if the terminal font has no
+; true italic face (common for monospace fonts) and the terminal
+; doesn't synthesize one (most don't), the attribute alone renders
+; nothing, and without a colour underneath that text is indistinguishable
+; from plain prose. @property is otherwise unused in flowing action/
+; dialogue text, so it doesn't collide with character/parenthetical/
+; lyric/centered's existing colours here.
+(italic) @property
 (italic) @markup.italic
+(bold) @property
 (bold) @markup.strong
+(bold_italic) @property
 (bold_italic) @markup.strong
 (bold_italic) @markup.italic
+(underline) @property
 (underline) @markup.underline
 
 ; Lyrics: coloured base plus the italic attribute. Deliberately @string
