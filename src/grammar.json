@@ -217,7 +217,7 @@
                   "type": "ALIAS",
                   "content": {
                     "type": "SYMBOL",
-                    "name": "_any_line"
+                    "name": "_prose_line"
                   },
                   "named": true,
                   "value": "dialogue_line"
@@ -502,7 +502,7 @@
             "members": [
               {
                 "type": "SYMBOL",
-                "name": "_any_line"
+                "name": "_prose_line"
               },
               {
                 "type": "SYMBOL",
@@ -526,10 +526,165 @@
             "type": "REPEAT",
             "content": {
               "type": "SYMBOL",
-              "name": "_any_line"
+              "name": "_prose_line"
             }
           }
         ]
+      }
+    },
+    "italic": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])(((([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])|[ \\t])*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_]))?\\*"
+        }
+      }
+    },
+    "bold": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\*\\*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])(((([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])|[ \\t])*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_]))?\\*\\*"
+        }
+      }
+    },
+    "bold_italic": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\*\\*\\*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])(((([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])|[ \\t])*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_]))?\\*\\*\\*"
+        }
+      }
+    },
+    "underline": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "_(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])(((([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])|[ \\t])*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_]))?_"
+        }
+      }
+    },
+    "_prose_line": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "REPEAT1",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "italic"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "bold"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "bold_italic"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "underline"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_prose_text"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_star"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_star2"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_underscore"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_slash"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_backslash"
+                }
+              ]
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_scene_eol"
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "_prose_text": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])(((([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])|[ \\t])*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_]))?"
+      }
+    },
+    "_star": {
+      "type": "TOKEN",
+      "content": {
+        "type": "STRING",
+        "value": "*"
+      }
+    },
+    "_star2": {
+      "type": "TOKEN",
+      "content": {
+        "type": "STRING",
+        "value": "**"
+      }
+    },
+    "_underscore": {
+      "type": "TOKEN",
+      "content": {
+        "type": "STRING",
+        "value": "_"
+      }
+    },
+    "_slash": {
+      "type": "TOKEN",
+      "content": {
+        "type": "STRING",
+        "value": "/"
+      }
+    },
+    "_backslash": {
+      "type": "TOKEN",
+      "content": {
+        "type": "STRING",
+        "value": "\\"
       }
     },
     "note": {

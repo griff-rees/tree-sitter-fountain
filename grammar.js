@@ -90,6 +90,33 @@ const CHARACTER_CUE =
   `(\\([^()\\r\\n]*\\)[ \\t]*)*` +
   `(\\^)?[ \\t]*${NL}`;
 
+// === Inline emphasis (#8) ===
+//
+// One character of plain inline prose content: excludes the emphasis
+// delimiters ('*', '_'), a backslash (reserved for escaping), and —
+// mirroring the boneyard fix (#31) — a '/' immediately followed by
+// '*', so a boneyard opening mid-line still gets first refusal.
+const PROSE_CHAR = `([^ \\t\\r\\n*_\\\\/]|/[^*\\r\\n])`;
+
+// An escaped delimiter ('\*' or '\_') is safe content too: this is how
+// the spec expects a literal delimiter character to be written without
+// triggering emphasis (e.g. "\*9765\*" shows literal asterisks).
+const ESCAPED_DELIM = `\\\\[*_]`;
+
+const PROSE_PIECE = `(${PROSE_CHAR}|${ESCAPED_DELIM})`;
+
+// A run of content that itself starts and ends on a PROSE_PIECE
+// (interior spaces/tabs are fine). This "sandwich" shape is what makes
+// the spec's flanking rule enforceable without lookahead, which token
+// regular expressions cannot do ("*69 and then *23" does not
+// italicize — spaces around emphasis markers are meaningful, "as with
+// Markdown"): the token can never absorb a disqualifying trailing
+// space as though it were harmless interior content, so wherever no
+// valid pairing exists, the surrounding regex engine's own (ordinary,
+// non-lookaround) backtracking fails the whole match rather than
+// partially matching.
+const FLANKING_SAFE = `${PROSE_PIECE}((${PROSE_PIECE}|[ \\t])*${PROSE_PIECE})?`;
+
 module.exports = grammar({
   name: 'fountain',
 
@@ -167,7 +194,7 @@ module.exports = grammar({
             choice(
               $.parenthetical,
               $.lyric,
-              alias($._any_line, $.dialogue_line)
+              alias($._prose_line, $.dialogue_line)
             )
           )
         )
@@ -252,15 +279,128 @@ module.exports = grammar({
         0,
         seq(
           choice(
-            $._any_line,
+            $._prose_line,
             $._forced_action_line,
             $._character_line,
             $._transition_line,
             $._scene_start_line
           ),
-          repeat($._any_line)
+          repeat($._prose_line)
         )
       ),
+
+    // === Inline emphasis ===
+    //
+    // *italic*, **bold**, ***bold italics*** and _underline_, on plain
+    // text. Each is a single self-contained token, not a grammar rule:
+    // an earlier multi-token design, whose content could itself hold a
+    // NESTED italic/bold node, hit a real, unresolved GLR limitation —
+    // once the opening delimiter is shifted, tree-sitter's default
+    // shift/reduce resolution commits to that reading, and when no
+    // valid closing delimiter turns out to exist several tokens later,
+    // the failure surfaces as generic error recovery rather than
+    // backtracking to a live sibling parse. A single token sidesteps
+    // this: if no valid close exists anywhere on the line, the regex
+    // engine's own (ordinary, non-lookaround) backtracking just fails
+    // the whole token, with no parser-level backtracking involved.
+    // Combining DIFFERENT delimiter types by nesting one inside another
+    // on the same line — e.g. "**bold *and italic* text**", or the
+    // spec's own "_Steel's face FILLS the *Leupold Mark 4* scope_" —
+    // is therefore not yet recognised as one combined span; each half
+    // is still found separately where it stands alone. Tracked as #38.
+    italic: ($) => token(prec(1, new RegExp(`\\*${FLANKING_SAFE}\\*`))),
+    bold: ($) => token(prec(1, new RegExp(`\\*\\*${FLANKING_SAFE}\\*\\*`))),
+    bold_italic: ($) =>
+      token(prec(1, new RegExp(`\\*\\*\\*${FLANKING_SAFE}\\*\\*\\*`))),
+
+    // Underline shares italic/bold's flanking mechanics, but has no
+    // Markdown-style "intraword" exemption in the spec: an ordinary
+    // snake_case identifier like "my_variable_name" satisfies the
+    // flanking rule just as validly as real emphasis does (letters
+    // immediately surround both underscores), so it is read as
+    // underline("variable") sandwiched between literal "my_" and
+    // "_name". This is not a bug in this grammar — it is what the
+    // spec, read literally, produces — but it is worth knowing before
+    // running this on prose that mixes in casual underscore use.
+    underline: ($) => token(prec(1, new RegExp(`_${FLANKING_SAFE}_`))),
+
+    // One line's worth of prose: plain text interspersed with emphasis
+    // nodes, ending in the line's own newline (optional, so a final
+    // line at end-of-file still parses — as with the historical
+    // `_any_line`, see the file header). Hidden, so its children are
+    // inlined directly into whatever references it — action's own
+    // lines this way, aliased to a named `dialogue_line` node for
+    // dialogue (below) so that node's existing shape is preserved for
+    // existing queries/tools.
+    //
+    // None of the content tokens can themselves match a newline, so
+    // `repeat` trying for one more piece always fails cleanly at the
+    // end of a physical line, bounding `_prose_line` to exactly one
+    // line — which is also what keeps separate `dialogue_line` nodes
+    // separate, rather than several physical lines merging into one.
+    //
+    // Trade-off: any boneyard that opens partway through a prose line
+    // — whether it closes on that same line or several lines later —
+    // now ends up nested inside this `_prose_line`'s action or
+    // dialogue_line node, rather than splitting the surrounding text
+    // into two separate nodes with the boneyard as a sibling between
+    // them (contrast the "Notes and boneyard" corpus tests). Only a
+    // boneyard that occupies its own line entirely, right after a
+    // blank line — before `_prose_line` has started building at all —
+    // is unaffected, staying a true top-level sibling. An earlier
+    // design preserved the sibling shape in every case by folding the
+    // newline into the SAME token as whatever content preceded it
+    // (mirroring `_any_line` exactly), but that meant no content token
+    // could safely stop short of a newline either, which in turn
+    // required doubling every token into "mid-line" and "line-final"
+    // variants just to keep `dialogue_line` bounded to one physical
+    // line — accepted as not worth the added complexity for a nesting
+    // difference that still parses correctly either way (tracked as a
+    // linting candidate in #37, should the distinction matter later).
+    _prose_line: ($) =>
+      prec.right(
+        seq(
+          repeat1(
+            choice(
+              $.italic,
+              $.bold,
+              $.bold_italic,
+              $.underline,
+              $._prose_text,
+              $._star,
+              $._star2,
+              $._underscore,
+              $._slash,
+              $._backslash
+            )
+          ),
+          optional($._scene_eol)
+        )
+      ),
+
+    _prose_text: ($) => token(new RegExp(FLANKING_SAFE)),
+
+    // A '*', '**' or '_' that isn't part of a successfully-matched
+    // italic/bold/underline token (math like "3 * 4", an unpaired
+    // delimiter, or an ordinary underscore in prose that doesn't pair
+    // up) falls back to being one literal character. Because
+    // `italic`/`bold`/`underline` are themselves tokens (see the note
+    // above them), this is an ordinary same-length lexer choice,
+    // resolved by longest match: whenever the structured tokens DO
+    // match, they win by virtue of being longer; when they don't,
+    // whichever of these fires instead.
+    _star: ($) => token('*'),
+    _star2: ($) => token('**'),
+    _underscore: ($) => token('_'),
+
+    // A lone '/' not part of a boneyard, and a lone '\' not part of an
+    // escaped delimiter: PROSE_CHAR excludes both ahead of '*'/'*'/'_'
+    // (so a real "/*" or "\*" still gets first refusal), but that
+    // leaves the bare character — an unclosed "/*", a "//" in a URL, a
+    // trailing "\" — with nothing to consume it otherwise, the same
+    // fix `_any_line` already needed for '/' (#31).
+    _slash: ($) => token('/'),
+    _backslash: ($) => token('\\'),
 
     // === Comments ===
 
@@ -294,13 +434,13 @@ module.exports = grammar({
     //
     // Precedence 5 (like the prefix) so that an uppercase word wins
     // over the tokens that also stay in the running mid-heading: the
-    // catch-all `_any_line` (action may stop absorbing heading tokens
+    // catch-all `_prose_text` (action may stop absorbing heading tokens
     // at any point, so it is always a valid alternative here) and the
     // transition token (valid because a transition may follow an
     // action block directly; it matches uppercase text while hoping
     // for a final "TO:", and while a higher-precedence token is still
     // a candidate the lexer keeps scanning past the end of the word,
-    // letting `_any_line` swallow the whole rest of the line).
+    // letting `_prose_text` swallow the whole rest of the line).
     _scene_word: ($) => token(prec(5, /[^ \t\r\n-][^ \t\r\n]*/)),
 
     // One higher than `_scene_word`, which matches the same

@@ -50,6 +50,16 @@
 
 (parenthetical) @string.special
 
+; Inline emphasis (in action and dialogue text): attribute captures
+; only, no colour base, so *italic*/**bold**/_underline_ stay legible
+; against whatever colour the surrounding action/dialogue text has.
+; ***bold italics*** gets both attributes layered together.
+(italic) @markup.italic
+(bold) @markup.strong
+(bold_italic) @markup.strong
+(bold_italic) @markup.italic
+(underline) @markup.underline
+
 ; Lyrics: coloured base plus the italic attribute. Deliberately @string
 ; rather than @string.special so lyrics and parentheticals differ (and
 ; title values use @markup.raw, keeping all three groups distinct).
