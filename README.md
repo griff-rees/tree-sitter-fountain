@@ -57,7 +57,7 @@ for VS Code).
    parser_config.fountain = {
      install_info = {
        url = "https://github.com/griff-rees/tree-sitter-fountain",
-       files = { "src/parser.c" },
+       files = { "src/parser.c", "src/scanner.c" },
      },
      filetype = "fountain",
    }
