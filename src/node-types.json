@@ -7,7 +7,25 @@
   {
     "type": "action",
     "named": true,
-    "fields": {}
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "bold",
+          "named": true
+        },
+        {
+          "type": "bold_italic",
+          "named": true
+        },
+        {
+          "type": "italic",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "centered",
@@ -48,6 +66,29 @@
         },
         {
           "type": "parenthetical",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "dialogue_line",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "bold",
+          "named": true
+        },
+        {
+          "type": "bold_italic",
+          "named": true
+        },
+        {
+          "type": "italic",
           "named": true
         }
       ]
@@ -254,8 +295,36 @@
     "fields": {}
   },
   {
+    "type": "*",
+    "named": false
+  },
+  {
+    "type": "**",
+    "named": false
+  },
+  {
     "type": "-",
     "named": false
+  },
+  {
+    "type": "/",
+    "named": false
+  },
+  {
+    "type": "\\",
+    "named": false
+  },
+  {
+    "type": "_",
+    "named": false
+  },
+  {
+    "type": "bold",
+    "named": true
+  },
+  {
+    "type": "bold_italic",
+    "named": true
   },
   {
     "type": "boneyard",
@@ -263,7 +332,7 @@
     "extra": true
   },
   {
-    "type": "dialogue_line",
+    "type": "italic",
     "named": true
   },
   {

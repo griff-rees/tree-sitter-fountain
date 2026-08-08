@@ -115,6 +115,66 @@ Then he stands again.
   (action))
 
 ==============================
+Inline emphasis: italic, bold, bold italics
+==============================
+
+He said *hello* to her.
+
+This is **bold** text.
+
+This is ***bold italics***.
+
+---
+
+(screenplay
+  (action
+    (italic))
+  (action
+    (bold))
+  (action
+    (bold_italic)))
+
+==============================
+Inline emphasis: escaped delimiters are literal
+==============================
+
+He said \*escaped\* to her.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Inline emphasis: the flanking rule (spec's own counter-example)
+==============================
+
+*69 and then *23
+
+3 * 4 * 5
+
+She wore * armor.
+
+---
+
+(screenplay
+  (action)
+  (action)
+  (action))
+
+==============================
+Inline emphasis does not span line breaks
+==============================
+
+He said *hello
+to her.
+
+---
+
+(screenplay
+  (action))
+
+==============================
 Lone uppercase line is action, not a character cue
 ==============================
 
@@ -148,6 +208,24 @@ I said, ARE YOU READY?
     (parenthetical)
     (dialogue_line)
     (dialogue_line)))
+
+==============================
+Inline emphasis inside dialogue, across separate lines
+==============================
+
+BOB
+This is *important*.
+And this is **also** important.
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line
+      (italic))
+    (dialogue_line
+      (bold))))
 
 ==============================
 Dialogue with extension and dual dialogue marker
@@ -361,8 +439,8 @@ Next action block.
 ---
 
 (screenplay
-  (action)
-  (boneyard)
+  (action
+    (boneyard))
   (action))
 
 ==============================
@@ -403,9 +481,8 @@ Hi /* aside */ there.
 (screenplay
   (dialogue
     (character)
-    (dialogue_line)
-    (boneyard)
-    (dialogue_line)))
+    (dialogue_line
+      (boneyard))))
 
 ==============================
 Title page

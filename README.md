@@ -17,6 +17,16 @@ sample screenplay with no errors (see `examples/` and `test/corpus/`).
 - Action, including forced `!ACTION`
 - Character cues and dialogue, including extensions (`(V.O.)`), forced `@Characters`,
   and the `^` dual-dialogue marker
+- Inline emphasis inside action and dialogue text: `*italics*`, `**bold**`
+  and `***bold italics***`, including the spec's flanking rule (spaces
+  adjacent to a marker keep it literal) and `\*` escaping. `_underline_`
+  is not yet implemented — a real highlighting bug (a token's reported
+  span swallows preceding whitespace, harmless for colour/bold but
+  visibly wrong for underline's own line-drawing attribute) needs
+  solving first. Combining different emphasis types by nesting one
+  inside another on the same line (e.g. `**bold *and italic* text**`)
+  isn't recognised as one combined span yet either — each half is found
+  separately where it stands alone
 - Parentheticals
 - Lyrics (`~`)
 - Transitions (`CUT TO:` and forced `> Transition`), including the spec's
@@ -27,9 +37,9 @@ sample screenplay with no errors (see `examples/` and `test/corpus/`).
 - Page breaks (`===`)
 - Notes (`[[...]]`) and boneyards (`/* ... */`)
 
-Not yet parsed as distinct nodes: inline emphasis (`*italics*`, `**bold**`,
-`_underline_`) inside lines, and multi-line notes — these currently remain
-part of their containing line. Contributions welcome.
+Not yet parsed as distinct nodes: multi-line notes, and same-line nested
+emphasis (see above) — these currently remain part of their containing
+line. Contributions welcome.
 
 ## Using with Neovim
 

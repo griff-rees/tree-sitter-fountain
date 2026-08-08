@@ -8,6 +8,52 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Added
+
+- Inline emphasis inside action and dialogue text: `*italics*`,
+  `**bold**` and `***bold italics***`, with matching highlight captures
+  (`@markup.italic`, `@markup.strong`). Implements the spec's flanking
+  rule (a marker adjacent to whitespace stays literal, e.g.
+  `*69 and then *23` does not italicize) and `\*` escaping
+  ([#8](https://github.com/griff-rees/tree-sitter-fountain/issues/8)).
+  `_underline_` is deliberately not included: it hit a genuine
+  highlighting bug rather than a scope decision — a token's reported
+  span always starts from wherever the lexer began searching, so any
+  whitespace skipped as an extra gets folded into the following
+  token's boundaries. This is true of every token in this grammar
+  (`location`/`time` in `scene_heading` have the same characteristic)
+  but was previously invisible, since colour and bold-weight
+  attributes render nothing on blank space; underline is the first
+  capture whose attribute paints something under blank cells, which
+  makes multiple spaces before `_underline_` visibly render as
+  underlined too. Tracked in
+  [#40](https://github.com/griff-rees/tree-sitter-fountain/issues/40).
+
+### Changed
+
+- A boneyard that opens partway through an action or dialogue line
+  (rather than on its own line) now nests inside that line's node
+  instead of splitting it into two sibling nodes with the boneyard
+  between them; the surrounding blank-line block separation, and the
+  case of a boneyard occupying its own line, are unaffected. Traded
+  off deliberately for #8 to avoid doubling every inline-content token
+  into "mid-line"/"line-final" variants; see the `_prose_line` comment
+  in `grammar.js`. Flagged as a possible candidate for a lint rule in
+  [#37](https://github.com/griff-rees/tree-sitter-fountain/issues/37)
+  if the distinction turns out to matter in practice.
+
+### Known limitation
+
+- Combining different emphasis types by nesting one inside another on
+  the same line (e.g. `**bold *and italic* text**`, or the spec's own
+  `_Steel's face FILLS the *Leupold Mark 4* scope_`) isn't recognised
+  as one combined span — each half is found separately where it stands
+  alone. A multi-token design capable of this nesting hit a real,
+  unresolved GLR limitation; tracked in
+  [#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38).
+
 ## [0.3.3] - 2026-08-05
 
 ### Fixed
