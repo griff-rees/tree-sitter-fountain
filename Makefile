@@ -4,7 +4,7 @@ endif
 
 LANGUAGE_NAME := tree-sitter-fountain
 HOMEPAGE_URL := https://github.com/griff-rees/tree-sitter-fountain
-VERSION := 0.3.3
+VERSION := 0.4.0
 
 # repository
 SRC_DIR := src

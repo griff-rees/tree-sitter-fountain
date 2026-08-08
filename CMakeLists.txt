@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(tree-sitter-fountain
-        VERSION "0.3.3"
+        VERSION "0.4.0"
         DESCRIPTION "A markup syntax for screenplays."
         HOMEPAGE_URL "https://github.com/griff-rees/tree-sitter-fountain"
         LANGUAGES C)
