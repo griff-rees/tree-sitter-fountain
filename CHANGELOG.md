@@ -13,15 +13,23 @@ tags; registry publishing is tracked in
 ### Added
 
 - Inline emphasis inside action and dialogue text: `*italics*`,
-  `**bold**`, `***bold italics***` and `_underline_`, with matching
-  highlight captures (`@markup.italic`, `@markup.strong`,
-  `@markup.underline`). Implements the spec's flanking rule (a marker
-  adjacent to whitespace stays literal, e.g. `*69 and then *23` does not
-  italicize) and `\*`/`\_` escaping. Underline has no Markdown-style
-  intraword exemption in the spec, so an ordinary identifier like
-  `my_variable_name` is read as underline("variable") — a known,
-  spec-literal quirk, not a bug here
+  `**bold**` and `***bold italics***`, with matching highlight captures
+  (`@markup.italic`, `@markup.strong`). Implements the spec's flanking
+  rule (a marker adjacent to whitespace stays literal, e.g.
+  `*69 and then *23` does not italicize) and `\*` escaping
   ([#8](https://github.com/griff-rees/tree-sitter-fountain/issues/8)).
+  `_underline_` is deliberately not included: it hit a genuine
+  highlighting bug rather than a scope decision — a token's reported
+  span always starts from wherever the lexer began searching, so any
+  whitespace skipped as an extra gets folded into the following
+  token's boundaries. This is true of every token in this grammar
+  (`location`/`time` in `scene_heading` have the same characteristic)
+  but was previously invisible, since colour and bold-weight
+  attributes render nothing on blank space; underline is the first
+  capture whose attribute paints something under blank cells, which
+  makes multiple spaces before `_underline_` visibly render as
+  underlined too. Tracked in
+  [#40](https://github.com/griff-rees/tree-sitter-fountain/issues/40).
 
 ### Changed
 

@@ -565,17 +565,6 @@
         }
       }
     },
-    "underline": {
-      "type": "TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 1,
-        "content": {
-          "type": "PATTERN",
-          "value": "_(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])(((([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_])|[ \\t])*(([^ \\t\\r\\n*_\\\\/]|\\/[^*\\r\\n])|\\\\[*_]))?_"
-        }
-      }
-    },
     "_prose_line": {
       "type": "PREC_RIGHT",
       "value": 0,
@@ -598,10 +587,6 @@
                 {
                   "type": "SYMBOL",
                   "name": "bold_italic"
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "underline"
                 },
                 {
                   "type": "SYMBOL",

@@ -291,11 +291,11 @@ module.exports = grammar({
 
     // === Inline emphasis ===
     //
-    // *italic*, **bold**, ***bold italics*** and _underline_, on plain
-    // text. Each is a single self-contained token, not a grammar rule:
-    // an earlier multi-token design, whose content could itself hold a
-    // NESTED italic/bold node, hit a real, unresolved GLR limitation —
-    // once the opening delimiter is shifted, tree-sitter's default
+    // *italic*, **bold** and ***bold italics***, on plain text. Each is
+    // a single self-contained token, not a grammar rule: an earlier
+    // multi-token design, whose content could itself hold a NESTED
+    // italic/bold node, hit a real, unresolved GLR limitation — once
+    // the opening delimiter is shifted, tree-sitter's default
     // shift/reduce resolution commits to that reading, and when no
     // valid closing delimiter turns out to exist several tokens later,
     // the failure surfaces as generic error recovery rather than
@@ -304,25 +304,32 @@ module.exports = grammar({
     // engine's own (ordinary, non-lookaround) backtracking just fails
     // the whole token, with no parser-level backtracking involved.
     // Combining DIFFERENT delimiter types by nesting one inside another
-    // on the same line — e.g. "**bold *and italic* text**", or the
-    // spec's own "_Steel's face FILLS the *Leupold Mark 4* scope_" —
-    // is therefore not yet recognised as one combined span; each half
-    // is still found separately where it stands alone. Tracked as #38.
+    // on the same line — e.g. "**bold *and italic* text**" — is
+    // therefore not yet recognised as one combined span; each half is
+    // still found separately where it stands alone. Tracked as #38.
+    //
+    // _underline_ is deliberately NOT implemented here despite being
+    // in scope for #8: it hit a separate, real bug — a token's
+    // reported span always starts from wherever the lexer began
+    // searching (right after the previous token), so any whitespace
+    // skipped as an extra along the way gets folded into the
+    // following token's boundaries. That's true of every token in
+    // this grammar (see `location`/`time` in scene_heading above,
+    // which have the identical characteristic), but harmless
+    // everywhere else, since colour and bold-weight attributes render
+    // nothing on blank space. Underline is the first capture whose
+    // attribute paints something under blank cells, which is what
+    // makes multiple spaces before "_underline_" visibly render as
+    // underlined too. A fix was attempted (an explicit, non-extra
+    // whitespace choice in `_prose_line`) and did solve the boundary,
+    // but broke scene heading recognition as a side effect via a
+    // still-not-understood interaction with the scene_heading/action
+    // GLR fork. Tracked in #40; still just a bare literal `_` here in
+    // the meantime, via `_underscore` below.
     italic: ($) => token(prec(1, new RegExp(`\\*${FLANKING_SAFE}\\*`))),
     bold: ($) => token(prec(1, new RegExp(`\\*\\*${FLANKING_SAFE}\\*\\*`))),
     bold_italic: ($) =>
       token(prec(1, new RegExp(`\\*\\*\\*${FLANKING_SAFE}\\*\\*\\*`))),
-
-    // Underline shares italic/bold's flanking mechanics, but has no
-    // Markdown-style "intraword" exemption in the spec: an ordinary
-    // snake_case identifier like "my_variable_name" satisfies the
-    // flanking rule just as validly as real emphasis does (letters
-    // immediately surround both underscores), so it is read as
-    // underline("variable") sandwiched between literal "my_" and
-    // "_name". This is not a bug in this grammar — it is what the
-    // spec, read literally, produces — but it is worth knowing before
-    // running this on prose that mixes in casual underscore use.
-    underline: ($) => token(prec(1, new RegExp(`_${FLANKING_SAFE}_`))),
 
     // One line's worth of prose: plain text interspersed with emphasis
     // nodes, ending in the line's own newline (optional, so a final
@@ -365,7 +372,6 @@ module.exports = grammar({
               $.italic,
               $.bold,
               $.bold_italic,
-              $.underline,
               $._prose_text,
               $._star,
               $._star2,
@@ -380,14 +386,13 @@ module.exports = grammar({
 
     _prose_text: ($) => token(new RegExp(FLANKING_SAFE)),
 
-    // A '*', '**' or '_' that isn't part of a successfully-matched
-    // italic/bold/underline token (math like "3 * 4", an unpaired
-    // delimiter, or an ordinary underscore in prose that doesn't pair
-    // up) falls back to being one literal character. Because
-    // `italic`/`bold`/`underline` are themselves tokens (see the note
-    // above them), this is an ordinary same-length lexer choice,
-    // resolved by longest match: whenever the structured tokens DO
-    // match, they win by virtue of being longer; when they don't,
+    // A '*' or '**' that isn't part of a successfully-matched
+    // italic/bold token (math like "3 * 4", an unpaired delimiter)
+    // falls back to being one literal character. Because
+    // `italic`/`bold` are themselves tokens (see the note above them),
+    // this is an ordinary same-length lexer choice, resolved by
+    // longest match: whenever the structured tokens DO match, they
+    // win by virtue of being longer; when they don't,
     // whichever of these fires instead.
     _star: ($) => token('*'),
     _star2: ($) => token('**'),

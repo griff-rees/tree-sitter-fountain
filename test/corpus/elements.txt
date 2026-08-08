@@ -115,7 +115,7 @@ Then he stands again.
   (action))
 
 ==============================
-Inline emphasis: italic, bold, bold italics, underline
+Inline emphasis: italic, bold, bold italics
 ==============================
 
 He said *hello* to her.
@@ -123,8 +123,6 @@ He said *hello* to her.
 This is **bold** text.
 
 This is ***bold italics***.
-
-She wore _underline_ shoes.
 
 ---
 
@@ -134,9 +132,7 @@ She wore _underline_ shoes.
   (action
     (bold))
   (action
-    (bold_italic))
-  (action
-    (underline)))
+    (bold_italic)))
 
 ==============================
 Inline emphasis: escaped delimiters are literal
@@ -144,12 +140,9 @@ Inline emphasis: escaped delimiters are literal
 
 He said \*escaped\* to her.
 
-She has an \_escaped\_ underscore.
-
 ---
 
 (screenplay
-  (action)
   (action))
 
 ==============================
@@ -168,18 +161,6 @@ She wore * armor.
   (action)
   (action)
   (action))
-
-==============================
-Inline emphasis: underline has no snake_case exemption
-==============================
-
-She has a my_variable_name error.
-
----
-
-(screenplay
-  (action
-    (underline)))
 
 ==============================
 Inline emphasis does not span line breaks

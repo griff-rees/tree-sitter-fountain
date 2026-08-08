@@ -23,10 +23,6 @@
         {
           "type": "italic",
           "named": true
-        },
-        {
-          "type": "underline",
-          "named": true
         }
       ]
     }
@@ -93,10 +89,6 @@
         },
         {
           "type": "italic",
-          "named": true
-        },
-        {
-          "type": "underline",
           "named": true
         }
       ]
@@ -370,10 +362,6 @@
   },
   {
     "type": "title_value",
-    "named": true
-  },
-  {
-    "type": "underline",
     "named": true
   }
 ]
