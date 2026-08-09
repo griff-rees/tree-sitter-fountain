@@ -8,6 +8,41 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Fixed
+
+- `[[notes]]` are now correctly split out as `note` nodes wherever they
+  appear, not just on their own line: a note opening mid-line (e.g.
+  `He drinks. [[Is this too subtle?]]`) used to be swallowed whole into
+  the surrounding `action`/`dialogue_line` prose, because `_prose_text`
+  had no reason to stop at `[` and so out-matched the (shorter) `note`
+  token on length. Fixed by giving `[[` the same "first refusal"
+  `_prose_text` already gives `/*` (the boneyard fix, #31): a `[`
+  immediately followed by another `[` is no longer ordinary prose
+  content, so `note` gets first shot at it
+  ([#9](https://github.com/griff-rees/tree-sitter-fountain/issues/9)).
+- `note` now accepts line breaks inside `[[...]]`, per spec — but not a
+  blank line, which still ends the note (falling back to plain text)
+  rather than being absorbed by it, matching the spec's "no blank lines
+  inside a note" rule
+  ([#9](https://github.com/griff-rees/tree-sitter-fountain/issues/9)).
+
+### Added
+
+- `\[` and `\/` now escape a literal `[` or `/`, the same way `\*` and
+  `\_` already escape emphasis: `\[[` no longer opens a note, and
+  `\/*` no longer opens a boneyard. Not in the Fountain spec itself
+  (notes and boneyards have no documented escape syntax), but a
+  natural extension of the fix above — leaving the one pair of
+  mid-line-swallowed delimiters with no way to write literally would
+  have been a rough edge
+  ([#9](https://github.com/griff-rees/tree-sitter-fountain/issues/9)).
+- `\]` now escapes a literal `]` *inside* an already-open note (e.g.
+  `[[a literal \] bracket]]`) — otherwise unwritable there at all,
+  since a bare `]` always ends a note's content
+  ([#9](https://github.com/griff-rees/tree-sitter-fountain/issues/9)).
+
 ## [0.4.1] - 2026-08-09
 
 ### Fixed

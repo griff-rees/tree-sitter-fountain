@@ -466,9 +466,76 @@ The next day.
 ---
 
 (screenplay
-  (action)
+  (action
+    (note))
   (boneyard)
   (action))
+
+==============================
+Multi-line note (#9)
+==============================
+
+He drinks. [[Is this
+too subtle?]]
+
+---
+
+(screenplay
+  (action
+    (note)))
+
+==============================
+Multi-line note inside dialogue (#9)
+==============================
+
+BOB
+Hi [[an aside
+that runs on]] there.
+
+---
+
+(screenplay
+  (dialogue
+    (character)
+    (dialogue_line
+      (note))))
+
+==============================
+Notes do not span blank lines (#9)
+==============================
+
+He drinks. [[Is this
+
+too subtle?]] maybe.
+
+---
+
+(screenplay
+  (action)
+  (action))
+
+==============================
+Escaping suppresses note and boneyard opening (#9)
+==============================
+
+A dog \[[ not a note and \/* not a boneyard */ runs.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Escaped ']' is literal content inside a note (#9)
+==============================
+
+He said [[a literal \] bracket]] once.
+
+---
+
+(screenplay
+  (action
+    (note)))
 
 ==============================
 Boneyard whitespace boundary (#40)
