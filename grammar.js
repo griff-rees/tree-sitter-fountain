@@ -93,15 +93,31 @@ const CHARACTER_CUE =
 // === Inline emphasis (#8) ===
 //
 // One character of plain inline prose content: excludes the emphasis
-// delimiters ('*', '_'), a backslash (reserved for escaping), and —
-// mirroring the boneyard fix (#31) — a '/' immediately followed by
-// '*', so a boneyard opening mid-line still gets first refusal.
-const PROSE_CHAR = `([^ \\t\\r\\n*_\\\\/]|/[^*\\r\\n])`;
+// delimiters ('*', '_') and a backslash (reserved for escaping). Two
+// characters additionally need "first refusal" for a longer delimiter
+// that might start with them, so a longer match wins the lexer's
+// longest-match tie-break instead of `_prose_text` swallowing it whole:
+//   - '/' immediately followed by '*' — mirrors the boneyard fix (#31),
+//     so a boneyard opening mid-line still gets recognised.
+//   - '[' immediately followed by another '[' — the same fix for notes
+//     (#9): `note`'s own token is otherwise shorter than the rest of
+//     the line and would simply lose the tie-break.
+// A lone '[' not forming "[[" (including one at the very end of a
+// line, with nothing valid to pair it with) still falls through to the
+// `_lbracket` token below, the same pattern `_slash` uses for a lone
+// '/'.
+const PROSE_CHAR = `([^ \\t\\r\\n*_\\\\/\\[]|/[^*\\r\\n]|\\[[^\\[\\r\\n])`;
 
-// An escaped delimiter ('\*' or '\_') is safe content too: this is how
-// the spec expects a literal delimiter character to be written without
-// triggering emphasis (e.g. "\*9765\*" shows literal asterisks).
-const ESCAPED_DELIM = `\\\\[*_]`;
+// A backslash-escaped delimiter is safe content too — writes a literal
+// delimiter character without triggering its special meaning:
+//   - '\*' / '\_' escape emphasis, per spec (e.g. "\*9765\*" shows
+//     literal asterisks).
+//   - '\/' and '\[' are this grammar's own extension (not in the spec,
+//     which has no note/boneyard escape syntax): each defuses one side
+//     of the two-character "/*" or "[[" lookahead above (#9), which is
+//     enough to stop it opening — a boneyard or note needs both
+//     characters live to open.
+const ESCAPED_DELIM = `\\\\[*_/\\[]`;
 
 const PROSE_PIECE = `(${PROSE_CHAR}|${ESCAPED_DELIM})`;
 
@@ -116,6 +132,22 @@ const PROSE_PIECE = `(${PROSE_CHAR}|${ESCAPED_DELIM})`;
 // non-lookaround) backtracking fails the whole match rather than
 // partially matching.
 const FLANKING_SAFE = `${PROSE_PIECE}((${PROSE_PIECE}|[ \\t])*${PROSE_PIECE})?`;
+
+// === Notes (#9) ===
+//
+// A note's content excludes ']' (reserved for the closing "]]") and
+// any newline — except a backslash-escaped ']' ('\]'), the same
+// escape convention as above, for the same reason: without it, ']'
+// couldn't be written inside a note at all, not just ambiguously.
+const NOTE_ESCAPED_BRACKET = `\\\\]`;
+const NOTE_CHAR = `[^\\]\\r\\n]`;
+const NOTE_PIECE = `(${NOTE_CHAR}|${NOTE_ESCAPED_BRACKET})`;
+
+// Same as NOTE_CHAR, but also excludes space/tab: used to require a
+// note's continuation line to start with something other than
+// whitespace (see `note` below, and its "no blank lines inside" rule).
+const NOTE_CHAR_NONWS = `[^\\]\\r\\n \\t]`;
+const NOTE_NONWS_PIECE = `(${NOTE_CHAR_NONWS}|${NOTE_ESCAPED_BRACKET})`;
 
 module.exports = grammar({
   name: 'fountain',
@@ -401,7 +433,8 @@ module.exports = grammar({
               $._star2,
               $._underscore,
               $._slash,
-              $._backslash
+              $._backslash,
+              $._lbracket
             )
           ),
           optional($._scene_eol)
@@ -431,9 +464,32 @@ module.exports = grammar({
     _slash: ($) => token('/'),
     _backslash: ($) => token('\\'),
 
+    // A lone '[' not part of a note-opening "[[" — mirrors `_slash`
+    // above (#9).
+    _lbracket: ($) => token('['),
+
     // === Comments ===
 
-    note: ($) => token(prec(2, new RegExp(`\\[\\[[^\\]\\n]*\\]\\]`))),
+    // `[[...]]`. The spec allows a note to contain line breaks but not
+    // blank lines (contrast `boneyard`, which may span blank lines
+    // freely — see the external scanner notes above). Shaped as:
+    //   - a first line of content (NOTE_PIECE, incl. escaped `\]`), then
+    //   - zero or more further lines, each REQUIRED to start with a
+    //     non-whitespace piece (NOTE_NONWS_PIECE).
+    // A line starting with whitespace-then-newline (or nothing at all,
+    // i.e. immediately blank) can therefore never appear after the
+    // first line — exactly the "no blank line inside" rule, expressed
+    // without lookahead (unsupported by tree-sitter's generation-time
+    // regex engine).
+    note: ($) =>
+      token(
+        prec(
+          2,
+          new RegExp(
+            `\\[\\[${NOTE_PIECE}*(${NL}${NOTE_NONWS_PIECE}${NOTE_PIECE}*)*\\]\\]`
+          )
+        )
+      ),
 
     // `boneyard` is an `extra` (see above), so — unlike `underline` — it
     // was never exposed to the GLR-fork risk that ruled out a pure-grammar
