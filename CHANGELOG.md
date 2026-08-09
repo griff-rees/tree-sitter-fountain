@@ -8,6 +8,46 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [0.4.1] - 2026-08-09
+
+### Fixed
+
+- `_underline_`'s reported span no longer absorbs preceding whitespace:
+  `A dog      _wags_ its tail.` now highlights exactly `_wags_` rather
+  than bleeding the underline attribute across the six preceding
+  spaces. `boneyard` had the identical characteristic (its span could
+  likewise swallow leading whitespace, e.g. before `/* comment */`)
+  and is fixed the same way. Two pure-grammar attempts (an explicit,
+  non-`extra` whitespace token — first broadly in `_prose_line`, then
+  scoped to only precede `underline`) both fixed the span and both
+  broke other parses (scene_heading recognition, boneyard nesting, EOF
+  handling): tree-sitter's lexer resolves a token deterministically
+  before GLR ever forks, so no in-grammar trick can make a whitespace
+  token conditional on "a delimiter follows" without it also winning
+  at every other position it's reachable. Fixed instead with this
+  grammar's first external C scanner (`src/scanner.c`), using
+  `advance(lexer, skip)` to trim leading whitespace from a token's
+  span without it counting toward that span — the documented idiom
+  for exactly this in tree-sitter's own external-scanner guide, also
+  used by tree-sitter-php, -lua and -nix
+  ([#40](https://github.com/griff-rees/tree-sitter-fountain/issues/40)).
+- `queries/highlights.scm` now captures `(underline)` with
+  `@markup.underline`; it had no capture at all previously, since
+  there was no `(underline)` node to capture until this release.
+
+### Known limitation
+
+- The `_underline_` fix does not extend to combining different
+  emphasis types by nesting one inside another (e.g. `_**bold**_`) —
+  that's `#38`, unchanged by this release: `underline`'s content still
+  cannot contain `*`, the same as before.
+- Boneyard's separate mid-line *nesting* trade-off (opens partway
+  through a line and nests inside that line's node instead of
+  splitting it into siblings — see 0.4.0's entry below) is unchanged;
+  this release fixes span accuracy only, not tree shape. Tracked
+  separately as
+  [#41](https://github.com/griff-rees/tree-sitter-fountain/issues/41).
+
 ## [0.4.0] - 2026-08-08
 
 ### Added
