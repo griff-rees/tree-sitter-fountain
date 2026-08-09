@@ -590,6 +590,10 @@
                 },
                 {
                   "type": "SYMBOL",
+                  "name": "underline"
+                },
+                {
+                  "type": "SYMBOL",
                   "name": "_prose_text"
                 },
                 {
@@ -680,17 +684,6 @@
         "content": {
           "type": "PATTERN",
           "value": "\\[\\[[^\\]\\n]*\\]\\]"
-        }
-      }
-    },
-    "boneyard": {
-      "type": "TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 2,
-        "content": {
-          "type": "PATTERN",
-          "value": "\\/\\*([^*]|\\*+[^*/])*\\*+\\/"
         }
       }
     },
@@ -984,7 +977,16 @@
     ]
   ],
   "precedences": [],
-  "externals": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "underline"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "boneyard"
+    }
+  ],
   "inline": [],
   "supertypes": [],
   "reserved": {}

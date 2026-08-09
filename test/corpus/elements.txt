@@ -115,7 +115,7 @@ Then he stands again.
   (action))
 
 ==============================
-Inline emphasis: italic, bold, bold italics
+Inline emphasis: italic, bold, bold italics, underline
 ==============================
 
 He said *hello* to her.
@@ -123,6 +123,8 @@ He said *hello* to her.
 This is **bold** text.
 
 This is ***bold italics***.
+
+This is _underlined_ text.
 
 ---
 
@@ -132,7 +134,49 @@ This is ***bold italics***.
   (action
     (bold))
   (action
-    (bold_italic)))
+    (bold_italic))
+  (action
+    (underline)))
+
+==============================
+Inline emphasis: underline whitespace boundary (#40)
+==============================
+
+A dog      _wags_ its tail.
+
+---
+
+(screenplay
+  (action
+    (underline)))
+
+==============================
+Inline emphasis: underline flanking rule
+==============================
+
+_69 and then _23
+
+3 _ 4 _ 5
+
+She wore _ armor.
+
+---
+
+(screenplay
+  (action)
+  (action)
+  (action))
+
+==============================
+Inline emphasis: underline escaped delimiters are literal
+==============================
+
+He said \_escaped\_ to her.
+
+---
+
+(screenplay
+  (action))
 
 ==============================
 Inline emphasis: escaped delimiters are literal
@@ -423,6 +467,43 @@ The next day.
 
 (screenplay
   (action)
+  (boneyard)
+  (action))
+
+==============================
+Boneyard whitespace boundary (#40)
+==============================
+
+A dog      /* aside */ its tail.
+
+---
+
+(screenplay
+  (action
+    (boneyard)))
+
+==============================
+Boneyard spanning a blank line
+==============================
+
+INT. GARAGE - DAY
+
+/*
+BOB
+Hello there.
+
+He leaves.
+*/
+
+Next scene.
+
+---
+
+(screenplay
+  (scene_heading
+    (scene_prefix)
+    (location)
+    (time))
   (boneyard)
   (action))
 

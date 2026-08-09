@@ -120,6 +120,15 @@ const FLANKING_SAFE = `${PROSE_PIECE}((${PROSE_PIECE}|[ \\t])*${PROSE_PIECE})?`;
 module.exports = grammar({
   name: 'fountain',
 
+  // The grammar's deliberate exception to "no external C scanner" (see
+  // the file header): `underline` and `boneyard` both need to consume
+  // leading whitespace without that whitespace counting toward their
+  // reported span, which is what `advance(lexer, skip)` exists for — see
+  // src/scanner.c and the notes above each rule below for the full
+  // rationale (#40). Order here must match `enum TokenType` in
+  // src/scanner.c exactly — external token identity is positional.
+  externals: ($) => [$.underline, $.boneyard],
+
   extras: ($) => [/[ \t]+/, $.note, $.boneyard],
 
   conflicts: ($) => [
@@ -308,28 +317,40 @@ module.exports = grammar({
     // therefore not yet recognised as one combined span; each half is
     // still found separately where it stands alone. Tracked as #38.
     //
-    // _underline_ is deliberately NOT implemented here despite being
-    // in scope for #8: it hit a separate, real bug — a token's
-    // reported span always starts from wherever the lexer began
-    // searching (right after the previous token), so any whitespace
-    // skipped as an extra along the way gets folded into the
-    // following token's boundaries. That's true of every token in
-    // this grammar (see `location`/`time` in scene_heading above,
-    // which have the identical characteristic), but harmless
-    // everywhere else, since colour and bold-weight attributes render
-    // nothing on blank space. Underline is the first capture whose
-    // attribute paints something under blank cells, which is what
-    // makes multiple spaces before "_underline_" visibly render as
-    // underlined too. A fix was attempted (an explicit, non-extra
-    // whitespace choice in `_prose_line`) and did solve the boundary,
-    // but broke scene heading recognition as a side effect via a
-    // still-not-understood interaction with the scene_heading/action
-    // GLR fork. Tracked in #40; still just a bare literal `_` here in
-    // the meantime, via `_underscore` below.
     italic: ($) => token(prec(1, new RegExp(`\\*${FLANKING_SAFE}\\*`))),
     bold: ($) => token(prec(1, new RegExp(`\\*\\*${FLANKING_SAFE}\\*\\*`))),
     bold_italic: ($) =>
       token(prec(1, new RegExp(`\\*\\*\\*${FLANKING_SAFE}\\*\\*\\*`))),
+
+    // _underline_ (#40, #8). Unlike italic/bold/bold_italic above, this
+    // is NOT a plain regex token: a token's reported span always starts
+    // from wherever the lexer began searching (right after the previous
+    // token), so whitespace skipped as an `extra` along the way gets
+    // folded into the following token's boundaries. That's true of every
+    // token in this grammar (see `location`/`time` in scene_heading
+    // above, which have the identical characteristic), but harmless
+    // everywhere else, since colour and bold-weight attributes render
+    // nothing on blank space. Underline is the first capture whose
+    // attribute paints something under blank cells, which is what makes
+    // multiple spaces before "_underline_" visibly render as underlined
+    // too.
+    //
+    // A pure-grammar fix (an explicit, non-extra whitespace token) was
+    // tried twice: once broadly in `_prose_line`, once scoped to only
+    // precede `underline`. Both solve the span, and both break other
+    // parses (scene_heading, boneyard nesting, EOF handling — 16 corpus
+    // tests between them) — not a guessable bug, but a structural
+    // limit: token selection is resolved by the lexer once,
+    // deterministically, before GLR ever gets a chance to fork, so no
+    // in-grammar trick can make a whitespace token conditional on "an
+    // underline actually follows" without it also winning at every
+    // OTHER position it's syntactically reachable. See src/scanner.c —
+    // this is declared as this grammar's one external token specifically
+    // to get `advance(lexer, skip)`, which trims leading trivia from a
+    // token's span by design (the same idiom used by tree-sitter-php,
+    // -lua and -nix, and by tree-sitter-markdown's inline scanner for
+    // this exact class of whitespace-flanking problem). Declared only in
+    // `externals` above — an external token needs no `rules` entry here.
 
     // One line's worth of prose: plain text interspersed with emphasis
     // nodes, ending in the line's own newline (optional, so a final
@@ -363,7 +384,9 @@ module.exports = grammar({
     // variants just to keep `dialogue_line` bounded to one physical
     // line — accepted as not worth the added complexity for a nesting
     // difference that still parses correctly either way (tracked as a
-    // linting candidate in #37, should the distinction matter later).
+    // linting candidate in #37, should the distinction matter later; the
+    // actual fix — a scanner-emitted synthetic split token — is scoped
+    // out in #41).
     _prose_line: ($) =>
       prec.right(
         seq(
@@ -372,6 +395,7 @@ module.exports = grammar({
               $.italic,
               $.bold,
               $.bold_italic,
+              $.underline,
               $._prose_text,
               $._star,
               $._star2,
@@ -411,7 +435,25 @@ module.exports = grammar({
 
     note: ($) => token(prec(2, new RegExp(`\\[\\[[^\\]\\n]*\\]\\]`))),
 
-    boneyard: ($) => token(prec(2, new RegExp(`/\\*([^*]|\\*+[^*/])*\\*+/`))),
+    // `boneyard` is an `extra` (see above), so — unlike `underline` — it
+    // was never exposed to the GLR-fork risk that ruled out a pure-grammar
+    // fix for #40: extras are always-valid, never a choice the parser has
+    // to decide between alternatives for, so nothing here disturbs
+    // scene_heading the way an explicit whitespace *choice* did. What it
+    // shares with `underline` is the same span bug — the JS-token version
+    // reported `/* comment */`'s span starting from wherever the lexer
+    // began searching, folding any preceding whitespace in — so it moved
+    // to the same `src/scanner.c` external scanner and the same
+    // `advance(lexer, skip)` idiom, once that machinery existed anyway.
+    // Declared only in `externals` above; no `rules` entry needed.
+    //
+    // Note: this fixes span accuracy only. It does NOT touch the separate,
+    // still-open tree-*shape* trade-off noted above `_prose_line` (a
+    // boneyard opening mid-line nests inside its enclosing
+    // action/dialogue_line instead of splitting it into siblings) — that
+    // needs the grammar itself to split around the boneyard, not just
+    // recognise its characters correctly, and is tracked separately as
+    // #41.
 
     // === Line tokens (each includes its trailing newline) ===
 

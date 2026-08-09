@@ -62,10 +62,6 @@
 ; doesn't collide with character/parenthetical/lyric/centered's
 ; existing colours here.
 ;
-; _underline_ is not implemented yet (#40 — a token's reported span
-; swallows preceding whitespace, which is invisible for colour/bold
-; but would visibly bridge gaps for underline's own line-drawing
-; attribute); there is no (underline) node to capture until then.
 (italic) @property
 (italic) @markup.italic
 (bold) @property
@@ -73,6 +69,15 @@
 (bold_italic) @property
 (bold_italic) @markup.strong
 (bold_italic) @markup.italic
+
+; _underline_ (#40): span accuracy is handled at the grammar level (an
+; external scanner, see src/scanner.c) rather than here, but is still
+; the reason this capture is safe to add now — before the fix, a
+; (underline) node's span could swallow preceding whitespace, which
+; would have visibly bridged gaps under this attribute the way it
+; doesn't for colour/bold above.
+(underline) @property
+(underline) @markup.underline
 
 ; Lyrics: coloured base plus the italic attribute. Deliberately @string
 ; rather than @string.special so lyrics and parentheticals differ (and
