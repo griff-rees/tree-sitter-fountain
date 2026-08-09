@@ -7,6 +7,12 @@ The grammar implements the [Fountain syntax specification](https://fountain.io/s
 and parses the canonical [Brick & Steel](https://fountain.io/_downloads/Brick-&-Steel.fountain)
 sample screenplay with no errors (see `examples/` and `test/corpus/`).
 
+This targets **Fountain 1.1**: forced action (`!`), forced character (`@`),
+lyrics (`~`) and lowercase character extensions are all supported, and 1.0's
+deprecated trailing-space action forcing is not. See
+[Fountain 1.1: Use the Force](https://johnaugust.com/2014/fountain-1-1-use-the-force)
+for a rundown of what changed from 1.0.
+
 ## Supported syntax
 
 - Title pages (`Title:`, `Credit:`, `Author:`, …, including indented multi-line values)
