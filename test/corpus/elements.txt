@@ -313,7 +313,7 @@ Hello.
     (dialogue_line)))
 
 ==============================
-Cheap tier: title page continuation values are captured correctly even when emphasis-shaped (#38 regression fix)
+Cheap tier: title page continuation values are captured correctly even when emphasis-shaped (#38 regression fix), and now carry real emphasis children (#49)
 ==============================
 Title:
 	_**BRICK & STEEL**_
@@ -330,8 +330,12 @@ Action.
   (title_page
     (title_entry
       key: (title_key)
-      value: (title_value)
-      value: (title_value))
+      value: (title_value
+        (underline
+          (bold)))
+      value: (title_value
+        (underline
+          (bold))))
     (title_entry
       key: (title_key)
       value: (title_value)))
@@ -923,7 +927,25 @@ Some action.
   (action))
 
 ==============================
-Title page: an unindented continuation value is rejected, not silently accepted (#48, known ERROR-node limitation, see #50)
+Title page: an inline value (same line as the key) also supports emphasis (#49)
+==============================
+Title: *Brick* & _Steel_
+
+Some action.
+
+---
+
+(screenplay
+  (title_page
+    (title_entry
+      key: (title_key)
+      value: (title_value
+        (italic)
+        (underline))))
+  (action))
+
+==============================
+Title page: an unindented continuation value is rejected, not silently accepted (#48, known ERROR-node limitation, see #50) — #49 changed the exact recovery shape, see comment below
 ==============================
 Title:
 Not indented at all
@@ -931,9 +953,30 @@ Not indented at all
 ---
 
 (screenplay
-  (ERROR
-    (title_key)
-    (UNEXPECTED ' ')))
+  (title_page
+    (title_entry
+      key: (title_key)
+      (ERROR)
+      value: (title_value))))
+
+; #49 changed `title_value`'s content from one monolithic token
+; (`_indented_line`) to `_title_indent` + `_prose_line` in sequence — see
+; `title_entry`'s own grammar.js comment. Tree-sitter's generic error
+; recovery reacts to that shape differently: it now inserts a small,
+; localised ERROR at the point the required blank/indent was expected
+; (right after "Title:"), then recovers into the FIRST `title_entry`
+; branch (inline value, no indent required) for "Not indented at all" —
+; rather than the old, single top-level ERROR that discarded the whole
+; construct. Confirmed this is still just error-recovery reshuffling,
+; not a new acceptance path: `title_entry`'s grammar rules still require
+; either an inline value on the SAME line as the key, or an indented one
+; — nothing here makes an unindented continuation line legally valid.
+; But it's arguably a worse failure mode than before: the ERROR is now
+; small and easy to miss, while "Not indented at all" renders as an
+; ordinary, error-free `title_value` — a consumer (e.g. a highlighter)
+; has no visual cue that anything is wrong. Left as-is and folded into
+; #50's own tracking (not a new ticket) since #50 already owns fixing
+; this whole class of malformed-title-page recovery properly.
 
 ==============================
 Final line without trailing newline

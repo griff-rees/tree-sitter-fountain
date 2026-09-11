@@ -352,12 +352,25 @@ module.exports = grammar({
     title_page: ($) => repeat1($.title_entry),
 
     title_entry: ($) => {
-      // Per spec (#48 — see `_indented_line`'s own comment): only a
+      // Per spec (#48 — see `_title_indent`'s own comment): only a
       // value directly on the key's own line is exempt from
       // indentation; every value on a following line of its own must
       // be indented.
-      const inlineValue = field('value', alias($._any_line, $.title_value));
-      const indentedValue = field('value', alias($._indented_line, $.title_value));
+      //
+      // `title_value`'s content is `_prose_line` itself (#49) — the
+      // SAME emphasis-aware rule action/dialogue already use — rather
+      // than the flat, opaque `_any_line`/`_indented_line` tokens this
+      // replaces, so e.g. "Title:\n\t_**BRICK & STEEL**_" (the
+      // canonical Brick & Steel title, and the regression case in the
+      // corpus test below) now gets real `underline`/`bold` children
+      // instead of literal, unstyled text. Only `title_value` gets
+      // this treatment, not `section_title` — out of scope for #49,
+      // see that issue.
+      const inlineValue = field('value', alias($._prose_line, $.title_value));
+      const indentedValue = field(
+        'value',
+        alias($._title_value_indented, $.title_value)
+      );
       return prec.right(seq(
         field('key', alias($._title_key, $.title_key)),
         choice(
@@ -373,14 +386,14 @@ module.exports = grammar({
           //     ended, a fresh action block starts here".
           //   - That ambiguity was always latent but invisible: both
           //     readings competed via ordinary internal-token
-          //     length/precedence, and `_any_line` (a long, whole-line
-          //     token) always won. #38 moved `italic`/`bold`/`underline`
-          //     to EXTERNAL scanner tokens, which tree-sitter always
-          //     tries first and accepts unconditionally on success —
-          //     bypassing that length comparison entirely. So a
-          //     continuation value containing well-formed emphasis
-          //     (e.g. the canonical Brick & Steel title,
-          //     "_**BRICK & STEEL**_") started losing to a stray
+          //     length/precedence, and the flat, whole-line token
+          //     `title_value` used to be built on always won. #38 moved
+          //     `italic`/`bold`/`underline` to EXTERNAL scanner tokens,
+          //     which tree-sitter always tries first and accepts
+          //     unconditionally on success — bypassing that length
+          //     comparison entirely. So a continuation value containing
+          //     well-formed emphasis (e.g. the canonical Brick & Steel
+          //     title, "_**BRICK & STEEL**_") started losing to a stray
           //     `action` block instead of being captured as
           //     `title_value`.
           //   - Requiring at least one value removes the "exit with
@@ -396,8 +409,13 @@ module.exports = grammar({
           //     position again, and external tokens win over internal
           //     ones unconditionally on success regardless of how
           //     specific the internal token's own alphabet is —
-          //     `_indented_line`'s stricter pattern only helps against
-          //     other INTERNAL tokens (`_prose_text`), not this.
+          //     `_title_indent`'s stricter pattern only helps against
+          //     other INTERNAL tokens (`_prose_text`), not this. Still
+          //     true post-#49: `title_value`'s content is now built on
+          //     the same external-token-aware `_prose_line`, but the
+          //     ambiguity this guards against is about whether a
+          //     `title_value` line is reached AT ALL, not what it's
+          //     built from once reached.
           //   - Trade-off this leaves open: a malformed title page
           //     (e.g. an unindented continuation line) now surfaces as
           //     a genuine parse ERROR rather than gracefully falling
@@ -901,24 +919,55 @@ module.exports = grammar({
       token(prec(5, new RegExp(`(${TITLE_KEYS}):[ \\t]*`))),
 
     // Fallback: any non-blank line (trailing newline optional, so a
-    // final line at end-of-file still parses).
+    // final line at end-of-file still parses). Only `section_title`
+    // uses this now — `title_value` moved to `_prose_line` (#49), the
+    // same emphasis-aware rule action/dialogue use, so a title-page
+    // value can contain real `italic`/`bold`/`underline` children
+    // instead of being opaque text.
     _any_line: ($) => token(new RegExp(`${ANY_LINE_BODY}(${NL})?`)),
 
-    // A title-page continuation value on its own line (#48).
+    // A title-page continuation value's required indentation, split out
+    // from the value's own content (#48, and #49 — see `title_entry`'s
+    // own comment for why the split matters: `_prose_line`'s content
+    // pieces include EXTERNAL emphasis tokens, which a single hand-
+    // written regex token can't invoke, so the indent can no longer be
+    // folded into one token together with the content it introduces
+    // the way the flat token this replaces did).
     //   - Per spec ("Values can be inline with the key or they can be
     //     indented on a newline below the key... Indenting is 3 or more
     //     spaces, or a tab"), only a same-line value is exempt from
     //     indentation — this is what `title_entry` uses for every value
     //     except the first.
-    //   - The indent itself is deliberately part of the reported span
-    //     here (unlike underline/boneyard/note's span fixes elsewhere
-    //     in this file): `title_value` isn't given a highlight
+    //   - Not folded into `extras`' own bare `[ \t]+`: an extra only
+    //     ever SKIPS whitespace, it can't enforce a 3-space MINIMUM, so
+    //     the indent still needs its own explicit, higher-precedence
+    //     token here to be required at all.
+    //   - `prec(5)`, matching `_title_key`'s own precedence: the margin
+    //     confirmed (same as elsewhere in this file, e.g. `_lyric_marker`
+    //     against `_prose_text`) needed for this token to reliably beat
+    //     the plain `[ \t]+` extra at the same position, so the indent
+    //     is actually consumed by this token and not silently skipped
+    //     as insignificant whitespace.
+    //   - The indent itself is deliberately still part of `title_value`'s
+    //     own reported span (via flattening — this hidden token is
+    //     sequenced directly inside the aliased `title_value` wrapper in
+    //     `title_entry`, unlike underline/boneyard/note's span fixes
+    //     elsewhere in this file): `title_value` isn't given a highlight
     //     attribute that paints blank cells, so the same low-priority
-    //     reasoning that left italic/bold unfixed applies here too —
-    //     not worth an external scanner for a cosmetic-only span
-    //     difference.
-    _indented_line: ($) =>
-      token(new RegExp(`([ ]{3,}|\\t)${ANY_LINE_BODY}(${NL})?`)),
+    //     reasoning that left italic/bold unfixed applies here too — not
+    //     worth an external scanner for a cosmetic-only span difference.
+    _title_indent: ($) => token(prec(5, /([ ]{3,}|\t)/)),
+
+    // Wrapper rule, not an inline `seq(...)` at the `title_entry` call
+    // site: `alias()` needs a single rule REFERENCE to collapse cleanly
+    // into one named node — confirmed empirically that aliasing a bare
+    // `seq($._title_indent, $._prose_line)` inline instead produces TWO
+    // separate `title_value` nodes (one empty, holding just the indent;
+    // one holding the content) rather than one node spanning both, the
+    // same "own named rule, then alias the whole thing" pattern already
+    // used for `_centered_line`/`_parenthetical_line` elsewhere in this
+    // file.
+    _title_value_indented: ($) => seq($._title_indent, $._prose_line),
 
     _blank: ($) => token(new RegExp(`[ \\t]*${NL}`)),
   },

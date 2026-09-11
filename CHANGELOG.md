@@ -100,6 +100,27 @@ declared as a real GLR conflict
   install got this wrong. Folded directly into `highlights.scm` as the
   default instead, colours included, no merge step required.
 
+## [0.7.0] - 2026-09-12
+
+### Added
+
+- `title_value` (title page "Key: value" content) now supports inline
+  emphasis the same way `action`/`dialogue_line` already did —
+  previously flat, opaque text only, even for the canonical Brick &
+  Steel example's own title styling
+  (`Title:\n\t_**BRICK & STEEL**_`). Only `title_value`, not
+  `section_title`
+  ([#49](https://github.com/griff-rees/tree-sitter-fountain/issues/49)).
+
+`title_value`'s move to emphasis-aware parsing (above) changed the
+exact shape of the malformed-title-page `ERROR` recovery noted in
+0.6.0 above — it's now smaller and more localised, but arguably easier
+to miss than before, since an otherwise-invalid unindented line can
+now recover into looking like an ordinary, error-free `title_value`;
+still tracked under the same issue
+([#50](https://github.com/griff-rees/tree-sitter-fountain/issues/50)),
+not a new one.
+
 ## [0.5.0] - 2026-08-09
 
 ### Fixed
