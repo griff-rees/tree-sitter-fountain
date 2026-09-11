@@ -86,6 +86,20 @@ parsing the rest as ordinary blocks, which needs `title_page`/`action`
 declared as a real GLR conflict
 ([#50](https://github.com/griff-rees/tree-sitter-fountain/issues/50)).
 
+## [0.6.1] - 2026-09-12
+
+### Fixed
+
+- `italic`/`bold`/`bold_italic`/`underline`'s colour fallbacks
+  (introduced in 0.6.0 above) shipped as a separate, opt-in
+  `highlights-emphasis-colours.scm` file the README had users merge in
+  by hand — reverted the same day: a consumer's tree-sitter query
+  loader only ever auto-discovers a file literally named
+  `highlights.scm`, so the second file silently did nothing unless
+  merged in exactly right, confirmed the hard way when a routine local
+  install got this wrong. Folded directly into `highlights.scm` as the
+  default instead, colours included, no merge step required.
+
 ## [0.5.0] - 2026-08-09
 
 ### Fixed
