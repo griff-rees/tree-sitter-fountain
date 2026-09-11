@@ -193,7 +193,7 @@
                       "type": "ALIAS",
                       "content": {
                         "type": "SYMBOL",
-                        "name": "_any_line"
+                        "name": "_prose_line"
                       },
                       "named": true,
                       "value": "title_value"
@@ -208,7 +208,7 @@
                         "type": "ALIAS",
                         "content": {
                           "type": "SYMBOL",
-                          "name": "_indented_line"
+                          "name": "_title_value_indented"
                         },
                         "named": true,
                         "value": "title_value"
@@ -233,7 +233,7 @@
                         "type": "ALIAS",
                         "content": {
                           "type": "SYMBOL",
-                          "name": "_indented_line"
+                          "name": "_title_value_indented"
                         },
                         "named": true,
                         "value": "title_value"
@@ -1298,12 +1298,29 @@
         "value": "(([^/\\r\\n]|\\/[^*\\r\\n])+|\\/)(\\r?\\n)?"
       }
     },
-    "_indented_line": {
+    "_title_indent": {
       "type": "TOKEN",
       "content": {
-        "type": "PATTERN",
-        "value": "([ ]{3,}|\\t)(([^/\\r\\n]|\\/[^*\\r\\n])+|\\/)(\\r?\\n)?"
+        "type": "PREC",
+        "value": 5,
+        "content": {
+          "type": "PATTERN",
+          "value": "([ ]{3,}|\\t)"
+        }
       }
+    },
+    "_title_value_indented": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_title_indent"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_prose_line"
+        }
+      ]
     },
     "_blank": {
       "type": "TOKEN",

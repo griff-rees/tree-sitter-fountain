@@ -46,6 +46,13 @@ tags; registry publishing is tracked in
   renders some of the four can trim just those lines from their own
   installed copy. See the README's "Colour fallbacks for emphasis"
   section.
+- `title_value` (title page "Key: value" content) now supports inline
+  emphasis the same way `action`/`dialogue_line` already did —
+  previously flat, opaque text only, even for the canonical Brick &
+  Steel example's own title styling
+  (`Title:\n\t_**BRICK & STEEL**_`). Only `title_value`, not
+  `section_title`
+  ([#49](https://github.com/griff-rees/tree-sitter-fountain/issues/49)).
 
 ### Fixed
 
@@ -83,6 +90,12 @@ silent misparse — more honest, but not yet a graceful fallback to
 parsing the rest as ordinary blocks, which needs `title_page`/`action`
 declared as a real GLR conflict
 ([#50](https://github.com/griff-rees/tree-sitter-fountain/issues/50)).
+`title_value`'s move to emphasis-aware parsing (above) changed the
+exact shape of that `ERROR` recovery again — it's now smaller and
+more localised, but arguably easier to miss than before, since an
+otherwise-invalid unindented line can now recover into looking like an
+ordinary, error-free `title_value`; still tracked under the same
+issue, not a new one.
 
 ## [0.5.0] - 2026-08-09
 

@@ -432,6 +432,33 @@
     }
   },
   {
+    "type": "title_value",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "bold",
+          "named": true
+        },
+        {
+          "type": "bold_italic",
+          "named": true
+        },
+        {
+          "type": "italic",
+          "named": true
+        },
+        {
+          "type": "underline",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "transition",
     "named": true,
     "fields": {}
@@ -535,10 +562,6 @@
   },
   {
     "type": "title_key",
-    "named": true
-  },
-  {
-    "type": "title_value",
     "named": true
   },
   {
