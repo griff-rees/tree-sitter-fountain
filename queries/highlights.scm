@@ -6,13 +6,9 @@
 ; @markup.strong is just `bold` and @markup.italic just `italic` in
 ; NvChad's base46), most elements below layer a coloured capture
 ; underneath so they stay visible on terminals or fonts without that
-; attribute. The one exception is inline emphasis (italic/bold/
-; bold_italic/underline) — see that section's own comment: their
-; colours live in the separate `highlights-emphasis-colours.scm`
-; instead, which the README's install instructions have you merge in
-; by default (the safe choice for a fresh install), since which of the
-; four colours you actually want depends on what your own terminal/
-; font renders and this query file has no way to detect that itself.
+; attribute — inline emphasis (italic/bold/bold_italic/underline)
+; included; see that section's own comment for why nesting makes this
+; one non-optional.
 
 ; Scene headings: the whole line gets the heading colour as a base
 ; (forced ".HEADING" lines have no child nodes, so this is all they
@@ -58,30 +54,48 @@
 (parenthetical) @string.special
 
 ; Inline emphasis (in action and dialogue text): the semantic attribute
-; only — @markup.strong is `bold`, @markup.italic just `italic`,
+; — @markup.strong is `bold`, @markup.italic just `italic`,
 ; @markup.underline just `underline` in many themes (e.g. NvChad's
 ; base46), so whether any of these renders as anything more than plain
 ; prose depends entirely on your terminal/font actually supporting that
 ; attribute (true italic support in particular is commonly missing on
-; monospace fonts).
+; monospace fonts) — PLUS a coloured fallback underneath (@property/
+; @attribute/@function/@type below), one per type, each independently
+; coloured in virtually any complete colorscheme.
 ;
-; A coloured fallback for whichever of these your setup can't render
-; lives in the separate `highlights-emphasis-colours.scm`, merged in by
-; default per the README's install instructions — kept in its own file
-; rather than inlined here because trimming a colour you've verified
-; you don't need (which of the four, if any, is up to what YOUR
-; terminal/font actually supports — this query file has no way to
-; detect that itself) is then a one-line deletion from your own merged
-; copy, not an edit to this project's own file. See that file's own
-; header, and the README's "Colour fallbacks for emphasis" section.
+; Unlike the other elements above, the colour fallback here isn't
+; optional: italic/bold/underline can nest inside each other, and
+; bold_italic nests inside any of the three as a leaf (#38), so a
+; SHARED fallback colour becomes invisible for the inner span whenever
+; your setup also can't render its semantic attribute — confirmed
+; empirically via Neovim's own highlighter (`vim.inspect_pos`) that a
+; nested `(underline (italic))` — e.g. the spec's own "_Steel's face
+; FILLS the *Leupold Mark 4* scope_" — resolved both nodes' base colour
+; to the same group when they shared one, making the inner span
+; indistinguishable from the text around it. None of the four below
+; collide with any other capture already used in this file
+; (@constant/@string/@string.special/@keyword/@comment/@comment.note/
+; @markup.heading/@markup.raw/@punctuation.special/@number) — the
+; actual colour chosen for each is arbitrary (this project has no code
+; semantics to map onto), only mutual distinctness matters. If your own
+; terminal/font already renders one of the four distinctly without it
+; (verified empirically, not assumed), trim that one capture line from
+; your own installed copy of this file — this project's own copy stays
+; a single self-contained `highlights.scm`, colours included by
+; default, rather than a second file you'd otherwise have to remember
+; to merge in yourself.
 ;
 ; _underline_ (#40): span accuracy is handled at the grammar level (an
 ; external scanner, see src/scanner.c) rather than here.
 (italic) @markup.italic
+(italic) @property
 (bold) @markup.strong
+(bold) @attribute
 (bold_italic) @markup.strong
 (bold_italic) @markup.italic
+(bold_italic) @function
 (underline) @markup.underline
+(underline) @type
 
 ; Lyrics: coloured base plus the italic attribute. Deliberately @string
 ; rather than @string.special so lyrics and parentheticals differ (and
