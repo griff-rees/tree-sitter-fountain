@@ -4,8 +4,15 @@
 ;
 ; Where a conventional group is attribute-only in common themes (e.g.
 ; @markup.strong is just `bold` and @markup.italic just `italic` in
-; NvChad's base46), a coloured capture is layered underneath so the
-; element stays visible on terminals or fonts without those attributes.
+; NvChad's base46), most elements below layer a coloured capture
+; underneath so they stay visible on terminals or fonts without that
+; attribute. The one exception is inline emphasis (italic/bold/
+; bold_italic/underline) — see that section's own comment: their
+; colours live in the separate `highlights-emphasis-colours.scm`
+; instead, which the README's install instructions have you merge in
+; by default (the safe choice for a fresh install), since which of the
+; four colours you actually want depends on what your own terminal/
+; font renders and this query file has no way to detect that itself.
 
 ; Scene headings: the whole line gets the heading colour as a base
 ; (forced ".HEADING" lines have no child nodes, so this is all they
@@ -50,33 +57,30 @@
 
 (parenthetical) @string.special
 
-; Inline emphasis (in action and dialogue text): coloured base plus the
-; matching attribute(s), same pattern as lyrics/centered text below.
-; This matters most for italic: bold usually falls back to a
-; brightened colour even without a bold font face, but italic has no
-; such fallback — if the terminal font has no true italic face
-; (common for monospace fonts) and the terminal doesn't synthesize one
-; (most don't), the attribute alone renders nothing, and without a
-; colour underneath that text is indistinguishable from plain prose.
-; @property is otherwise unused in flowing action/dialogue text, so it
-; doesn't collide with character/parenthetical/lyric/centered's
-; existing colours here.
+; Inline emphasis (in action and dialogue text): the semantic attribute
+; only — @markup.strong is `bold`, @markup.italic just `italic`,
+; @markup.underline just `underline` in many themes (e.g. NvChad's
+; base46), so whether any of these renders as anything more than plain
+; prose depends entirely on your terminal/font actually supporting that
+; attribute (true italic support in particular is commonly missing on
+; monospace fonts).
 ;
-(italic) @property
+; A coloured fallback for whichever of these your setup can't render
+; lives in the separate `highlights-emphasis-colours.scm`, merged in by
+; default per the README's install instructions — kept in its own file
+; rather than inlined here because trimming a colour you've verified
+; you don't need (which of the four, if any, is up to what YOUR
+; terminal/font actually supports — this query file has no way to
+; detect that itself) is then a one-line deletion from your own merged
+; copy, not an edit to this project's own file. See that file's own
+; header, and the README's "Colour fallbacks for emphasis" section.
+;
+; _underline_ (#40): span accuracy is handled at the grammar level (an
+; external scanner, see src/scanner.c) rather than here.
 (italic) @markup.italic
-(bold) @property
 (bold) @markup.strong
-(bold_italic) @property
 (bold_italic) @markup.strong
 (bold_italic) @markup.italic
-
-; _underline_ (#40): span accuracy is handled at the grammar level (an
-; external scanner, see src/scanner.c) rather than here, but is still
-; the reason this capture is safe to add now — before the fix, a
-; (underline) node's span could swallow preceding whitespace, which
-; would have visibly bridged gaps under this attribute the way it
-; doesn't for colour/bold above.
-(underline) @property
 (underline) @markup.underline
 
 ; Lyrics: coloured base plus the italic attribute. Deliberately @string

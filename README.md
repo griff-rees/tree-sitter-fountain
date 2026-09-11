@@ -68,8 +68,47 @@ for VS Code).
 
 2. Run `:TSInstall fountain`.
 
-3. Copy `queries/highlights.scm` to `queries/fountain/highlights.scm` on your
-   runtimepath (e.g. `~/.config/nvim/queries/fountain/highlights.scm`).
+3. Copy both `queries/highlights.scm` and
+   `queries/highlights-emphasis-colours.scm` onto your runtimepath as a
+   single `queries/fountain/highlights.scm`, e.g.:
+
+   ```sh
+   cat queries/highlights.scm queries/highlights-emphasis-colours.scm \
+     > ~/.config/nvim/queries/fountain/highlights.scm
+   ```
+
+   This is the safe default (see "Colour fallbacks for emphasis"
+   below) — copying `highlights.scm` alone works too, but leaves
+   `italic`/`bold`/`bold_italic`/`underline` looking like plain prose
+   on any terminal/font that can't render their attribute.
+
+### Colour fallbacks for emphasis
+
+`italic`, `bold`, `bold_italic` and `underline` each carry a semantic
+highlight capture (`@markup.italic`, `@markup.strong`,
+`@markup.underline`) in `highlights.scm`. Whether that renders as
+anything more than plain prose depends entirely on your terminal/font
+— true italic support in particular is commonly missing on monospace
+fonts, and a theme where `@markup.italic` is attribute-only (as in
+NvChad's base46, for example) leaves such text visually identical to
+plain prose on a font without it. `highlights-emphasis-colours.scm`
+layers an independent colour under each of the four for exactly this
+reason, and the install step above includes it by default so a fresh
+install stays visible regardless of what your setup renders.
+
+If you've verified your own terminal/font already renders one or more
+of these attributes correctly, the matching colour line is redundant
+for you — since a tree-sitter query can't detect that automatically
+(there's no portable way to introspect terminal/font glyph support),
+trimming it is a manual, one-line edit to your own merged copy: delete
+`(italic) @property`, `(bold) @attribute`, `(bold_italic) @function`
+and/or `(underline) @type` for whichever you've confirmed you don't
+need. The four are deliberately independent colours, not a shared one
+— since emphasis types can nest inside each other (`**bold *and
+italic* text**`), collapsing multiple lines onto the same capture group
+would make the nested span indistinguishable from its parent on a
+setup that can't render either one's attribute, even if you're only
+keeping a subset.
 
 ## Development
 
