@@ -10,6 +10,8 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-11
+
 ### Added
 
 - Same-line nested emphasis: `italic`/`bold`/`underline` are now real
