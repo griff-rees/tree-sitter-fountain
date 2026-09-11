@@ -8,6 +8,82 @@ and this project adheres to
 tags; registry publishing is tracked in
 [#15](https://github.com/griff-rees/tree-sitter-fountain/issues/15).
 
+## [Unreleased]
+
+### Added
+
+- Same-line nested emphasis: `italic`/`bold`/`underline` are now real
+  grammar rules whose content may recursively contain each other — e.g.
+  `**bold *and italic* text**`, or the spec's own
+  `_Steel's face FILLS the *Leupold Mark 4* scope_`. `bold_italic`
+  stays the flat, atomic token it always was, but may now appear as a
+  nested child inside the other three. An earlier spike found that a
+  pure multi-token grammar rule (no external scanner) hits a real,
+  unresolved GLR limitation — once the opening delimiter is shifted,
+  tree-sitter's default shift/reduce resolution commits to that
+  reading, and a missing closing delimiter surfaces as generic error
+  recovery rather than backtracking to a live sibling parse. Fixed by
+  having the external scanner independently validate (via forward
+  lookahead) that a legal close exists before ever emitting the OPEN
+  token, so the parser never shifts a doomed reading in the first
+  place ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+- `lyric`, `synopsis`, forced `action` lines, `parenthetical` and
+  `centered` now all support inline emphasis the same way `action`/
+  `dialogue_line` already did — previously flat text only. `centered`
+  and `parenthetical` needed the same pre-validating-scanner treatment
+  as the nested-emphasis rules above (confirmed the hard way: a plain-
+  token attempt broke an unclosed forced transition,
+  `> Burn to White.`, by committing to a doomed `centered` reading)
+  ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+- Title page continuation values must now be indented (3 or more
+  spaces, or a tab), per spec — previously any line was silently
+  accepted, regardless of indentation
+  ([#48](https://github.com/griff-rees/tree-sitter-fountain/issues/48)).
+- `queries/highlights-emphasis-colours.scm`: an opt-in-by-default
+  companion to `highlights.scm` with one colour-fallback line per
+  emphasis type (`italic`/`bold`/`bold_italic`/`underline`), each
+  independent so a user who's verified their terminal/font already
+  renders some of the four can trim just those lines from their own
+  installed copy. See the README's "Colour fallbacks for emphasis"
+  section.
+
+### Fixed
+
+- A forced action line's own first line (`!Forced action.`) now
+  supports inline emphasis, matching its continuation lines, which
+  already did ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+- `note`'s reported span could include preceding whitespace, the same
+  bug [#40](https://github.com/griff-rees/tree-sitter-fountain/issues/40)
+  fixed for `boneyard`/`underline` but never applied to `note` —
+  unnoticed until now because the bug is only visually obvious for a
+  highlight attribute that paints something over blank cells, and
+  `note` typically renders as a plain foreground colour
+  ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+- Title page continuation values containing well-formed emphasis (e.g.
+  the canonical Brick & Steel title, `_**BRICK & STEEL**_`) were
+  losing to a stray `action` block instead of being captured as
+  `title_value`. Root cause: external scanner tokens (see the nested-
+  emphasis entry above) unconditionally win over internal tokens like
+  `_any_line` on success, which broke a length-based tie-break
+  `title_entry`'s structure had silently relied on
+  ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+- `italic`/`bold`/`bold_italic`/`underline` all shared one colour
+  fallback (`@property`) in `queries/highlights.scm`, invisible until
+  nesting (above) made two of them able to apply to overlapping spans
+  at once: a nested span rendered with the identical fallback colour
+  as its parent, making it indistinguishable on any terminal/font that
+  also couldn't render the semantic attribute — confirmed empirically
+  via Neovim's own highlighter. Each now gets its own colour, moved
+  into the new `highlights-emphasis-colours.scm`
+  ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+
+Malformed title-page structure (e.g. an unindented continuation value)
+now surfaces as a genuine parse `ERROR` rather than the previous
+silent misparse — more honest, but not yet a graceful fallback to
+parsing the rest as ordinary blocks, which needs `title_page`/`action`
+declared as a real GLR conflict
+([#50](https://github.com/griff-rees/tree-sitter-fountain/issues/50)).
+
 ## [0.5.0] - 2026-08-09
 
 ### Fixed
