@@ -219,6 +219,227 @@ to her.
   (action))
 
 ==============================
+Cheap tier: lyric supports emphasis (#38)
+==============================
+
+~A *lyric* line
+
+---
+
+(screenplay
+  (lyric
+    (italic)))
+
+==============================
+Cheap tier: synopsis supports emphasis (#38)
+==============================
+
+=A *synopsis* note
+
+---
+
+(screenplay
+  (synopsis
+    (italic)))
+
+==============================
+Cheap tier: forced action's first line supports emphasis, same as its continuation lines (#38)
+==============================
+
+!Forced *action* line.
+Second *action* line.
+
+---
+
+(screenplay
+  (action
+    (italic)
+    (italic)))
+
+==============================
+Cheap tier: centered supports emphasis (#38 Tier 2)
+==============================
+
+> Centered *italic* text <
+
+---
+
+(screenplay
+  (centered
+    (italic)))
+
+==============================
+Cheap tier: an unclosed forced transition doesn't get mistaken for centered (#38 Tier 2 regression check)
+==============================
+
+> Burn to White.
+
+---
+
+(screenplay
+  (transition))
+
+==============================
+Cheap tier: parenthetical supports emphasis (#38 Tier 2)
+==============================
+
+BOB
+(a *beat*)
+Hello.
+
+---
+
+(screenplay
+  (dialogue
+    character: (character)
+    (parenthetical
+      (italic))
+    (dialogue_line)))
+
+==============================
+Cheap tier: an unclosed parenthetical falls back to literal, no parse error (#38 Tier 2)
+==============================
+
+BOB
+(unclosed paren without closing
+Hello.
+
+---
+
+(screenplay
+  (dialogue
+    character: (character)
+    (dialogue_line)
+    (dialogue_line)))
+
+==============================
+Cheap tier: title page continuation values are captured correctly even when emphasis-shaped (#38 regression fix)
+==============================
+Title:
+	_**BRICK & STEEL**_
+	_**FULL RETIRED**_
+Credit: Written by
+
+INT. HOUSE - DAY
+
+Action.
+
+---
+
+(screenplay
+  (title_page
+    (title_entry
+      key: (title_key)
+      value: (title_value)
+      value: (title_value))
+    (title_entry
+      key: (title_key)
+      value: (title_value)))
+  (scene_heading
+    prefix: (scene_prefix)
+    location: (location)
+    time: (time))
+  (action))
+
+==============================
+Nested emphasis: bold containing italic (#38)
+==============================
+
+She wore **blue *and shiny* wetsuit** shoes.
+
+---
+
+(screenplay
+  (action
+    (bold
+      (italic))))
+
+==============================
+Nested emphasis: underline containing italic, spec's own example (#38)
+==============================
+
+Steel's face FILLS the _*Leupold Mark 4* scope_ housing.
+
+---
+
+(screenplay
+  (action
+    (underline
+      (italic))))
+
+==============================
+Nested emphasis: underline containing bold_italic (#38)
+==============================
+
+_underline ***bi*** end_
+
+---
+
+(screenplay
+  (action
+    (underline
+      (bold_italic))))
+
+==============================
+Nested emphasis: multiple separate nested spans as siblings (#38)
+==============================
+
+**first *a* and *b* both** ok.
+
+---
+
+(screenplay
+  (action
+    (bold
+      (italic)
+      (italic))))
+
+==============================
+Nested emphasis: an unclosed nested span fails the whole outer span (#38)
+==============================
+
+An unclosed **bold *never closes text.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Nested emphasis: flanking-rule violation in a nested span fails the whole outer span (#38)
+==============================
+
+**bold *not nested * text** end.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Nested emphasis: escaped delimiters stay literal, not a nested open (#38)
+==============================
+
+He said \*escaped\* and \_escaped\_ to her.
+
+---
+
+(screenplay
+  (action))
+
+==============================
+Nested emphasis: a star-run longer than the current close needs stays unrecognised (#38, known scope limit)
+==============================
+
+She wore *a red* dress and **blue *maybe*** shoes.
+
+---
+
+(screenplay
+  (action
+    (italic)))
+
+==============================
 Lone uppercase line is action, not a character cue
 ==============================
 
@@ -485,6 +706,18 @@ too subtle?]]
     (note)))
 
 ==============================
+Note whitespace boundary (#38-span-fix)
+==============================
+
+He drinks.   [[Is this too subtle?]]
+
+---
+
+(screenplay
+  (action
+    (note)))
+
+==============================
 Multi-line note inside dialogue (#9)
 ==============================
 
@@ -665,6 +898,42 @@ Some action.
       (title_value)))
   (action)
   (action))
+
+==============================
+Title page: 3-space indentation also counts, not just a tab (#48)
+==============================
+Title: BRICK & STEEL
+Contact:
+   Next Level Productions
+   1588 Mission Dr.
+
+Some action.
+
+---
+
+(screenplay
+  (title_page
+    (title_entry
+      key: (title_key)
+      value: (title_value))
+    (title_entry
+      key: (title_key)
+      value: (title_value)
+      value: (title_value)))
+  (action))
+
+==============================
+Title page: an unindented continuation value is rejected, not silently accepted (#48, known ERROR-node limitation, see #50)
+==============================
+Title:
+Not indented at all
+
+---
+
+(screenplay
+  (ERROR
+    (title_key)
+    (UNEXPECTED ' ')))
 
 ==============================
 Final line without trailing newline

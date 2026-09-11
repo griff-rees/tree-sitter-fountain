@@ -90,6 +90,52 @@ const CHARACTER_CUE =
   `(\\([^()\\r\\n]*\\)[ \\t]*)*` +
   `(\\^)?[ \\t]*${NL}`;
 
+// Any non-blank line's content. Shared by `_any_line` and
+// `_indented_line` below — same alphabet, only the leading indentation
+// requirement differs between them.
+//   - Stops before "/*", so a boneyard that opens mid-line — even one
+//     closing on a later line — is picked up by the `boneyard` extra
+//     instead of being swallowed by the line (#31).
+//   - The lone "/" alternative keeps a slash at the end of a line, or
+//     an unclosed "/*", lexing as plain text rather than an error.
+//   - Token regular expressions cannot peek ahead, so "not containing
+//     /*" is spelled out as "runs of either a non-slash character or a
+//     slash followed by a non-star".
+//   - A trailing /? on the main alternative would be wrong: longest-
+//     match would then swallow the opening slash of a real boneyard.
+const ANY_LINE_BODY = `(([^/\\r\\n]|/[^*\\r\\n])+|/)`;
+
+// A single marker character ('~'/'='/'!') followed by prose content to
+// end of line — the shared shape behind `_lyric_line`, `_synopsis_line`
+// and `_forced_action_line` (#38 cheap tier).
+//   - Factored out rather than repeated three times with only the
+//     marker rule differing.
+//   - `marker` must be a `$.`-referenced rule (not an inline token),
+//     since each caller needs its own distinctly-named marker for the
+//     lexer precedence reasoning documented at each call site.
+function markedProseLine($, marker) {
+  return seq(marker, repeat($._prose_piece), optional($._scene_eol));
+}
+
+// A container's own open/close delimiter pair, wrapping content that
+// may include ANY of the four emphasis types (`centered`/
+// `parenthetical`, #38 Tier 2) plus a plain content-run token specific
+// to that container. Unlike `italic`/`bold`/`underline` (which each
+// exclude THEMSELVES from their own nestable set, since they mutually
+// recurse — see the "Inline emphasis" comment below), `centered` and
+// `parenthetical` aren't part of that recursive set at all, so both
+// always offer the same unfiltered choice of all four — genuinely
+// identical between the two, not just similar, which is what makes
+// this worth sharing rather than writing out twice.
+function containerLine($, open, contentRun, close) {
+  return seq(
+    open,
+    repeat(choice($.italic, $.bold, $.bold_italic, $.underline, contentRun)),
+    close,
+    optional($._scene_eol)
+  );
+}
+
 // === Inline emphasis (#8) ===
 //
 // One character of plain inline prose content: excludes the emphasis
@@ -106,7 +152,31 @@ const CHARACTER_CUE =
 // line, with nothing valid to pair it with) still falls through to the
 // `_lbracket` token below, the same pattern `_slash` uses for a lone
 // '/'.
-const PROSE_CHAR = `([^ \\t\\r\\n*_\\\\/\\[]|/[^*\\r\\n]|\\[[^\\[\\r\\n])`;
+// One character of plain content, parameterized by an extra set of
+// excluded characters on top of the base alphabet (space/tab/CR/LF/
+// '*'/'_'/'\\'/'[' — see the paragraph above for why each of those is
+// there). `PROSE_CHAR` below is this called with no extra exclusions;
+// `parenthetical`/`centered` (#38 Tier 2) call it with their own
+// closing delimiter (')'/'<') added, so a content run stops before it
+// instead of swallowing it — the same "first refusal" concern as
+// '/*'/'[[' above, just for a different container.
+//   - A function, not per-variant constants: the THREE alternatives
+//     here (base class, '/'-lookahead, '['-lookahead) are one piece of
+//     shared logic, not just shared text — a future change to how a
+//     character class is built (not just which characters it excludes)
+//     only needs editing this one function body, not three near-
+//     duplicate regex strings kept in sync by hand.
+//   - The two-character lookahead alternatives get the extra exclusions
+//     in their SECOND character slot too: without that, e.g. a '/'
+//     immediately followed by a container's own ')' would be wrongly
+//     swallowed together as one piece, hiding the close.
+function proseChar(extraExcluded = '') {
+  return `([^ \\t\\r\\n*_\\\\/\\[${extraExcluded}]` +
+    `|/[^*\\r\\n${extraExcluded}]` +
+    `|\\[[^\\[\\r\\n${extraExcluded}])`;
+}
+
+const PROSE_CHAR = proseChar();
 
 // A backslash-escaped delimiter is safe content too — writes a literal
 // delimiter character without triggering its special meaning:
@@ -119,7 +189,27 @@ const PROSE_CHAR = `([^ \\t\\r\\n*_\\\\/\\[]|/[^*\\r\\n]|\\[[^\\[\\r\\n])`;
 //     characters live to open.
 const ESCAPED_DELIM = `\\\\[*_/\\[]`;
 
-const PROSE_PIECE = `(${PROSE_CHAR}|${ESCAPED_DELIM})`;
+// Same pairing as proseChar/PROSE_CHAR: a function (piece = char OR
+// escaped delimiter, parameterized) plus the unparameterized default as
+// a constant.
+function prosePiece(extraExcluded = '') {
+  return `(${proseChar(extraExcluded)}|${ESCAPED_DELIM})`;
+}
+
+const PROSE_PIECE = prosePiece();
+
+// Parenthetical/centered content (#38 Tier 2) — see proseChar's own
+// comment for why these exist. Both exclude BOTH of their construct's
+// delimiter characters, symmetrically ('()' / '><') — stricter than the
+// flat token `centered` replaces, which excluded only '<' and let a
+// stray '>' appear as ordinary content. Centered has two genuinely
+// distinct delimiter characters (unlike e.g. `~`'s single marker), so
+// treating both as reserved is the more consistent choice: a stray '>'
+// mid-content now fails the parse (falls back to literal, the same
+// "fail closed" pattern unclosed emphasis already uses) instead of
+// being silently absorbed.
+const PAREN_PIECE = prosePiece('()');
+const CENTERED_PIECE = prosePiece('><');
 
 // A run of content that itself starts and ends on a PROSE_PIECE
 // (interior spaces/tabs are fine). This "sandwich" shape is what makes
@@ -133,33 +223,54 @@ const PROSE_PIECE = `(${PROSE_CHAR}|${ESCAPED_DELIM})`;
 // partially matching.
 const FLANKING_SAFE = `${PROSE_PIECE}((${PROSE_PIECE}|[ \\t])*${PROSE_PIECE})?`;
 
-// === Notes (#9) ===
+// === Notes (#9, #38-span-fix) ===
 //
-// A note's content excludes ']' (reserved for the closing "]]") and
-// any newline — except a backslash-escaped ']' ('\]'), the same
-// escape convention as above, for the same reason: without it, ']'
-// couldn't be written inside a note at all, not just ambiguously.
-const NOTE_ESCAPED_BRACKET = `\\\\]`;
-const NOTE_CHAR = `[^\\]\\r\\n]`;
-const NOTE_PIECE = `(${NOTE_CHAR}|${NOTE_ESCAPED_BRACKET})`;
-
-// Same as NOTE_CHAR, but also excludes space/tab: used to require a
-// note's continuation line to start with something other than
-// whitespace (see `note` below, and its "no blank lines inside" rule).
-const NOTE_CHAR_NONWS = `[^\\]\\r\\n \\t]`;
-const NOTE_NONWS_PIECE = `(${NOTE_CHAR_NONWS}|${NOTE_ESCAPED_BRACKET})`;
+// `note`'s matching now lives in src/scanner.c's `scan_note`, alongside
+// `boneyard`:
+//   - Content excludes ']' (reserved for the closing "]]") and any
+//     newline except a backslash-escaped ']'; continuation lines after
+//     the first may not start with whitespace — the "no blank lines
+//     inside a note" rule.
+//   - Like `boneyard`, `note` needs `advance(lexer, skip)` to keep
+//     leading whitespace out of its reported span, a bug that existed
+//     unnoticed since #9 (a plain regex token can't do this — see the
+//     fuller explanation above `italic` below) until it was caught and
+//     fixed alongside #38's scanner work.
+//   - Declared only in `externals` above — an external token needs no
+//     `rules` entry here.
 
 module.exports = grammar({
   name: 'fountain',
 
   // The grammar's deliberate exception to "no external C scanner" (see
-  // the file header): `underline` and `boneyard` both need to consume
-  // leading whitespace without that whitespace counting toward their
-  // reported span, which is what `advance(lexer, skip)` exists for — see
-  // src/scanner.c and the notes above each rule below for the full
-  // rationale (#40). Order here must match `enum TokenType` in
-  // src/scanner.c exactly — external token identity is positional.
-  externals: ($) => [$.underline, $.boneyard],
+  // the file header). Two different problems land here:
+  //   - `boneyard` and `note` need to consume leading whitespace without
+  //     that whitespace counting toward their reported span, which is
+  //     what `advance(lexer, skip)` exists for (#40, and the identical
+  //     bug in `note` fixed alongside #38 — see src/scanner.c).
+  //   - `italic`/`bold`/`underline`/`centered`/`parenthetical`'s OPEN
+  //     tokens need to validate, before ever committing to a structured
+  //     reading, that a legal nested/closing match exists later in the
+  //     line — the fix for a real GLR limitation that ruled out a
+  //     pure-grammar version of same-line nested emphasis (#38), and
+  //     confirmed necessary again for `centered`/`parenthetical` when a
+  //     plain-token attempt hit the identical failure mode against an
+  //     unclosed forced transition (#38 Tier 2 — see src/scanner.c for
+  //     the full rationale on both).
+  // Order here must match `enum TokenType` in src/scanner.c exactly —
+  // external token identity is positional.
+  externals: ($) => [
+    $.boneyard,
+    $.note,
+    $._italic_open,
+    $._italic_close,
+    $._bold_open,
+    $._bold_close,
+    $._underline_open,
+    $._underline_close,
+    $._centered_open,
+    $._paren_open,
+  ],
 
   extras: ($) => [/[ \t]+/, $.note, $.boneyard],
 
@@ -184,13 +295,40 @@ module.exports = grammar({
   ],
 
   rules: {
+    // #38 regression fix (see `title_entry`'s own comment for the full
+    // mechanism): when `title_page` is present, at least one real blank
+    // line is now REQUIRED before the first `_block` — closing the
+    // "title_page ends here, with zero blank lines, and a block starts
+    // immediately" loophole that let a title_value line lose to a
+    // stray `action` reading. `title_entry`'s `repeat1` fix only
+    // covered a title's FIRST continuation value; this covers every
+    // value position (and every point within `title_page` generally),
+    // since it removes the zero-blank exit for the WHOLE construct at
+    // once, not one call site within it.
+    //   - When there's no `title_page` at all, blank lines before the
+    //     first block stay optional (0+), same as before — this only
+    //     tightens the boundary that sits directly after a title page.
+    //   - `optional(...)` around the post-title_page body preserves the
+    //     "title page is the entire file" case: no trailing blank line
+    //     is required if nothing follows it at all.
+    // The block-sequence shape itself (`_blocks` below) is identical in
+    // both branches — factored out rather than duplicated. Wrapped in
+    // `optional()` at each call site, not inside `_blocks` itself:
+    // tree-sitter forbids a non-start rule from matching the empty
+    // string, so "zero blocks at all" has to live at the reference,
+    // not in the shared rule's own definition.
     screenplay: ($) =>
-      seq(
-        optional($.title_page),
-        repeat($._blank),
-        repeat(seq($._block, repeat1($._blank))),
-        optional($._block)
+      choice(
+        seq($.title_page, optional(seq(repeat1($._blank), optional($._blocks)))),
+        seq(repeat($._blank), optional($._blocks))
       ),
+
+    // One or more blocks. Each is usually followed by at least one
+    // blank line before the next — except the very last, which may
+    // instead end right at EOF with no trailing blank at all (the
+    // trailing, non-repeated `$._block` below carries no such
+    // requirement). Shared by both `screenplay` branches above.
+    _blocks: ($) => seq(repeat(seq($._block, repeat1($._blank))), $._block),
 
     _block: ($) =>
       choice(
@@ -213,16 +351,63 @@ module.exports = grammar({
 
     title_page: ($) => repeat1($.title_entry),
 
-    title_entry: ($) =>
-      prec.right(seq(
+    title_entry: ($) => {
+      // Per spec (#48 — see `_indented_line`'s own comment): only a
+      // value directly on the key's own line is exempt from
+      // indentation; every value on a following line of its own must
+      // be indented.
+      const inlineValue = field('value', alias($._any_line, $.title_value));
+      const indentedValue = field('value', alias($._indented_line, $.title_value));
+      return prec.right(seq(
         field('key', alias($._title_key, $.title_key)),
         choice(
-          // "Key: value" with optional indented continuation lines
-          repeat1(field('value', alias($._any_line, $.title_value))),
-          // "Key:" alone, values on the following indented lines
-          seq($._blank, repeat(field('value', alias($._any_line, $.title_value))))
+          // "Key: value", with 0+ further indented continuation lines
+          seq(inlineValue, repeat(indentedValue)),
+          // "Key:" alone: every value must be its own indented line.
+          //   - `repeat1`, not `repeat` (#38 regression fix): with 0+
+          //     values allowed, this branch could complete with ZERO
+          //     values, and nothing requires a blank line before the
+          //     next top-level `_block` (`screenplay`'s own
+          //     `repeat($._blank)` there is also 0+) — so a value line
+          //     was structurally ambiguous with "title_page already
+          //     ended, a fresh action block starts here".
+          //   - That ambiguity was always latent but invisible: both
+          //     readings competed via ordinary internal-token
+          //     length/precedence, and `_any_line` (a long, whole-line
+          //     token) always won. #38 moved `italic`/`bold`/`underline`
+          //     to EXTERNAL scanner tokens, which tree-sitter always
+          //     tries first and accepts unconditionally on success —
+          //     bypassing that length comparison entirely. So a
+          //     continuation value containing well-formed emphasis
+          //     (e.g. the canonical Brick & Steel title,
+          //     "_**BRICK & STEEL**_") started losing to a stray
+          //     `action` block instead of being captured as
+          //     `title_value`.
+          //   - Requiring at least one value removes the "exit with
+          //     zero" reading entirely, so the ambiguity can't arise —
+          //     a title-page key with a truly empty value has no
+          //     legitimate use here anyway.
+          //   - `#48`'s indentation requirement (now also true of the
+          //     first branch's continuation lines) doesn't replace this
+          //     `repeat1` — confirmed empirically it's still load-
+          //     bearing: letting a `repeat` here exit with zero matches
+          //     makes `_block`'s tokens (including the EXTERNAL
+          //     emphasis ones) simultaneously reachable at that same
+          //     position again, and external tokens win over internal
+          //     ones unconditionally on success regardless of how
+          //     specific the internal token's own alphabet is —
+          //     `_indented_line`'s stricter pattern only helps against
+          //     other INTERNAL tokens (`_prose_text`), not this.
+          //   - Trade-off this leaves open: a malformed title page
+          //     (e.g. an unindented continuation line) now surfaces as
+          //     a genuine parse ERROR rather than gracefully falling
+          //     back to being parsed as ordinary blocks — fixing that
+          //     needs `title_page`/`action` declared as a real GLR
+          //     conflict, tracked separately as #50.
+          seq($._blank, repeat1(indentedValue))
         )
-      )),
+      ));
+    },
 
     // === Dialogue ===
 
@@ -246,6 +431,8 @@ module.exports = grammar({
     parenthetical: ($) => $._parenthetical_line,
 
     // Consecutive lyric lines (a verse, no blanks between) form one block.
+    // Content after the marker supports emphasis, same as action/dialogue
+    // (previously flat text only — see `_lyric_line` below).
     lyric: ($) => prec.right(repeat1($._lyric_line)),
 
     // === Single-line blocks ===
@@ -294,6 +481,8 @@ module.exports = grammar({
     // Consecutive centered lines (no blank between) form one block.
     centered: ($) => prec.right(repeat1($._centered_line)),
 
+    // Content after the marker supports emphasis, same as action/dialogue
+    // (previously flat text only — see `_synopsis_line` below).
     synopsis: ($) => $._synopsis_line,
 
     // A section heading: 1-6 '#' markers (more = deeper nesting) and an
@@ -332,57 +521,89 @@ module.exports = grammar({
 
     // === Inline emphasis ===
     //
-    // *italic*, **bold** and ***bold italics***, on plain text. Each is
-    // a single self-contained token, not a grammar rule: an earlier
-    // multi-token design, whose content could itself hold a NESTED
-    // italic/bold node, hit a real, unresolved GLR limitation — once
-    // the opening delimiter is shifted, tree-sitter's default
-    // shift/reduce resolution commits to that reading, and when no
-    // valid closing delimiter turns out to exist several tokens later,
-    // the failure surfaces as generic error recovery rather than
-    // backtracking to a live sibling parse. A single token sidesteps
-    // this: if no valid close exists anywhere on the line, the regex
-    // engine's own (ordinary, non-lookaround) backtracking just fails
-    // the whole token, with no parser-level backtracking involved.
-    // Combining DIFFERENT delimiter types by nesting one inside another
-    // on the same line — e.g. "**bold *and italic* text**" — is
-    // therefore not yet recognised as one combined span; each half is
-    // still found separately where it stands alone. Tracked as #38.
+    // *italic*, **bold**, ***bold italics*** and _underline_, on plain
+    // text (#8, #40).
+    //   - `italic`/`bold`/`underline` are real grammar rules whose
+    //     content may recursively contain each OTHER — e.g.
+    //     "**bold *and italic* text**" (#38) or the spec's own
+    //     "_Steel's face FILLS the *Leupold Mark 4* scope_" — but never
+    //     themselves (an `italic` span's content cannot contain another
+    //     `italic`; same for `bold`/`underline`).
+    //   - `bold_italic` is the one exception: it stays the flat,
+    //     self-contained token it always was — it may appear as a
+    //     nested CHILD inside the other three, but its own content does
+    //     not itself recurse.
     //
-    italic: ($) => token(prec(1, new RegExp(`\\*${FLANKING_SAFE}\\*`))),
-    bold: ($) => token(prec(1, new RegExp(`\\*\\*${FLANKING_SAFE}\\*\\*`))),
+    // An earlier spike tried italic/bold nesting as a pure multi-token
+    // grammar rule with no external scanner, and hit a real, unresolved
+    // GLR limitation:
+    //   - Once the opening delimiter is shifted, tree-sitter's default
+    //     shift/reduce resolution commits to that reading, and when no
+    //     valid closing delimiter turns out to exist several tokens
+    //     later, the failure surfaces as generic error recovery rather
+    //     than backtracking to a live sibling parse (the line should
+    //     instead fall back to plain text, as it does when nothing
+    //     pairs up).
+    //   - The fix (see src/scanner.c): each OPEN token —
+    //     `_italic_open`/`_bold_open`/`_underline_open` — is only ever
+    //     emitted by the external scanner after it has independently
+    //     validated, via its own forward lookahead, that a legal close
+    //     (honoring the flanking rule, and recursing into any nested
+    //     span along the way) exists later in the line.
+    //   - If that validation fails, the scanner refuses to open at all,
+    //     so the parser never shifts a doomed reading in the first
+    //     place — GLR backtracking is never needed, because the doomed
+    //     path never starts.
+    //   - The CLOSE tokens and the plain `_emphasis_content_run` piece
+    //     below just retrace the same, already-validated, decisions.
+    //
+    // Underline's OPEN/CLOSE pair is also what gives it a correctly
+    // bounded span when preceded by whitespace (#40):
+    //   - Unlike a plain regex token, whose reported span starts from
+    //     wherever the lexer began searching (so whitespace skipped as
+    //     an `extra` along the way would otherwise fold into the
+    //     token), the external scanner explicitly marks leading
+    //     whitespace as "skip" — see src/scanner.c.
+    //   - Underline is the one of the four whose highlight attribute
+    //     paints something under blank cells, which is what makes this
+    //     visible (multiple spaces before "_underline_" would otherwise
+    //     render as underlined too).
+    italic: ($) =>
+      seq(
+        $._italic_open,
+        repeat(choice($.bold, $.underline, $.bold_italic, $._emphasis_content_run)),
+        $._italic_close
+      ),
+
+    bold: ($) =>
+      seq(
+        $._bold_open,
+        repeat(choice($.italic, $.underline, $.bold_italic, $._emphasis_content_run)),
+        $._bold_close
+      ),
+
     bold_italic: ($) =>
       token(prec(1, new RegExp(`\\*\\*\\*${FLANKING_SAFE}\\*\\*\\*`))),
 
-    // _underline_ (#40, #8). Unlike italic/bold/bold_italic above, this
-    // is NOT a plain regex token: a token's reported span always starts
-    // from wherever the lexer began searching (right after the previous
-    // token), so whitespace skipped as an `extra` along the way gets
-    // folded into the following token's boundaries. That's true of every
-    // token in this grammar (see `location`/`time` in scene_heading
-    // above, which have the identical characteristic), but harmless
-    // everywhere else, since colour and bold-weight attributes render
-    // nothing on blank space. Underline is the first capture whose
-    // attribute paints something under blank cells, which is what makes
-    // multiple spaces before "_underline_" visibly render as underlined
-    // too.
-    //
-    // A pure-grammar fix (an explicit, non-extra whitespace token) was
-    // tried twice: once broadly in `_prose_line`, once scoped to only
-    // precede `underline`. Both solve the span, and both break other
-    // parses (scene_heading, boneyard nesting, EOF handling — 16 corpus
-    // tests between them) — not a guessable bug, but a structural
-    // limit: token selection is resolved by the lexer once,
-    // deterministically, before GLR ever gets a chance to fork, so no
-    // in-grammar trick can make a whitespace token conditional on "an
-    // underline actually follows" without it also winning at every
-    // OTHER position it's syntactically reachable. See src/scanner.c —
-    // this is declared as this grammar's one external token specifically
-    // to get `advance(lexer, skip)`, which trims leading trivia from a
-    // token's span by design (the same idiom used by tree-sitter-php,
-    // -lua and -nix, and by tree-sitter-markdown's inline scanner for
-    // this exact class of whitespace-flanking problem). Declared only in
-    // `externals` above — an external token needs no `rules` entry here.
+    underline: ($) =>
+      seq(
+        $._underline_open,
+        repeat(choice($.italic, $.bold, $.bold_italic, $._emphasis_content_run)),
+        $._underline_close
+      ),
+
+    // A run of plain content strictly between an emphasis span's own
+    // delimiters (open/close or a nested span's boundaries).
+    //   - Same PROSE_PIECE alphabet as `_prose_text` below, so it gives
+    //     a mid-run boneyard/note the same "first refusal" on '/*'/'[['
+    //     — see PROSE_CHAR's own comment.
+    //   - But without `_prose_text`'s FLANKING_SAFE sandwich wrapper —
+    //     that constraint is about the OUTER span's own boundaries,
+    //     already fully enforced by src/scanner.c's pre-validation, and
+    //     would be redundant (and wrong: it would forbid a content run
+    //     that legitimately starts or ends adjacent to a nested span)
+    //     if repeated on each inner run.
+    _emphasis_content_run: ($) => token(new RegExp(`(${PROSE_PIECE}|[ \\t])+`)),
 
     // One line's worth of prose: plain text interspersed with emphasis
     // nodes, ending in the line's own newline (optional, so a final
@@ -420,25 +641,29 @@ module.exports = grammar({
     // actual fix — a scanner-emitted synthetic split token — is scoped
     // out in #41).
     _prose_line: ($) =>
-      prec.right(
-        seq(
-          repeat1(
-            choice(
-              $.italic,
-              $.bold,
-              $.bold_italic,
-              $.underline,
-              $._prose_text,
-              $._star,
-              $._star2,
-              $._underscore,
-              $._slash,
-              $._backslash,
-              $._lbracket
-            )
-          ),
-          optional($._scene_eol)
-        )
+      prec.right(seq(repeat1($._prose_piece), optional($._scene_eol))),
+
+    // One "piece" of inline prose content: an emphasis node, or a
+    // single plain-text/literal-delimiter token.
+    //   - Factored out of `_prose_line` so `lyric`/`synopsis`/forced
+    //     `action` lines below can reuse the exact same alphabet with
+    //     `repeat` (0+) instead of `_prose_line`'s `repeat1` (1+).
+    //   - Those constructs' own marker characters ('~'/'='/'!') may
+    //     legally be followed by nothing at all (a bare "~" line, say),
+    //     which `repeat1` would reject.
+    _prose_piece: ($) =>
+      choice(
+        $.italic,
+        $.bold,
+        $.bold_italic,
+        $.underline,
+        $._prose_text,
+        $._star,
+        $._star2,
+        $._underscore,
+        $._slash,
+        $._backslash,
+        $._lbracket
       ),
 
     _prose_text: ($) => token(new RegExp(FLANKING_SAFE)),
@@ -469,27 +694,11 @@ module.exports = grammar({
     _lbracket: ($) => token('['),
 
     // === Comments ===
-
-    // `[[...]]`. The spec allows a note to contain line breaks but not
-    // blank lines (contrast `boneyard`, which may span blank lines
-    // freely — see the external scanner notes above). Shaped as:
-    //   - a first line of content (NOTE_PIECE, incl. escaped `\]`), then
-    //   - zero or more further lines, each REQUIRED to start with a
-    //     non-whitespace piece (NOTE_NONWS_PIECE).
-    // A line starting with whitespace-then-newline (or nothing at all,
-    // i.e. immediately blank) can therefore never appear after the
-    // first line — exactly the "no blank line inside" rule, expressed
-    // without lookahead (unsupported by tree-sitter's generation-time
-    // regex engine).
-    note: ($) =>
-      token(
-        prec(
-          2,
-          new RegExp(
-            `\\[\\[${NOTE_PIECE}*(${NL}${NOTE_NONWS_PIECE}${NOTE_PIECE}*)*\\]\\]`
-          )
-        )
-      ),
+    //
+    // `note` (`[[...]]`, #9) is declared only in `externals` above —
+    // see the "Notes" comment near the top of this file, and
+    // src/scanner.c's `scan_note`, for its matching rules (content may
+    // contain line breaks but not blank lines) and its span fix.
 
     // `boneyard` is an `extra` (see above), so — unlike `underline` — it
     // was never exposed to the GLR-fork risk that ruled out a pure-grammar
@@ -573,46 +782,143 @@ module.exports = grammar({
     _forced_transition_line: ($) =>
       token(prec(3, new RegExp(`>[^\\n]*${EOL}`))),
 
+    // '>' + prose content + '<' (#38 Tier 2, single delimiters per spec
+    // — "bracketed with greater/less-than", e.g. ">THE END<"; not
+    // doubled).
+    //   - `_centered_open`/`_paren_open` below are EXTERNAL tokens (see
+    //     src/scanner.c's `scan_centered_open`/`scan_paren_open`), not
+    //     plain JS ones — confirmed the hard way that plain tokens
+    //     aren't safe here: an early attempt used `token(prec(4, '>'))`
+    //     for `_centered_open`, and "> Burn to White." (a forced
+    //     transition with no closing '<') hit exactly the failure mode
+    //     #38's own header describes for italic/bold/underline — the
+    //     parser committed to a `centered` reading via ordinary
+    //     shift/reduce, found no '<' before end of line, and surfaced a
+    //     genuine parse ERROR instead of falling back to
+    //     `_forced_transition_line`. The external scanner validates a
+    //     legal close exists before ever emitting the OPEN token, the
+    //     same fix as #38's emphasis rules (see scanner.c's file header
+    //     for the general mechanism) — external tokens need no JS-level
+    //     `prec()` either, since they always win over internal tokens
+    //     like `_forced_transition_line` when their validation succeeds.
+    //   - `_centered_close`/`_paren_close` stay plain JS tokens: content
+    //     excludes both of each construct's own delimiters
+    //     (CENTERED_PIECE/PAREN_PIECE), so nothing else can match
+    //     either one inside — no ambiguity to resolve, no risk of the
+    //     doomed-commitment failure above.
     _centered_line: ($) =>
-      token(prec(4, new RegExp(`>[ \\t]*[^<\\n]*<[ \\t]*${EOL}`))),
+      containerLine($, $._centered_open, $._centered_content_run, $._centered_close),
+
+    _centered_close: ($) => token('<'),
+
+    // Same shape as `_emphasis_content_run`, but built on CENTERED_PIECE
+    // so a run stops before '>' or '<' instead of swallowing either.
+    _centered_content_run: ($) =>
+      token(new RegExp(`(${CENTERED_PIECE}|[ \\t])+`)),
 
     _character_line: ($) => token(prec(3, new RegExp(CHARACTER_CUE))),
 
     _forced_character_line: ($) =>
       token(prec(3, new RegExp(`@[^\\n]*${EOL}`))),
 
+    // '(' + prose content + ')' (#38 Tier 2). See `_centered_line`
+    // above for why `_paren_open` is an external token (the same
+    // "unclosed delimiter must fail closed, not error" reasoning) while
+    // `_paren_close` stays plain (content excludes ')' entirely via
+    // PAREN_PIECE, so it's never ambiguous).
     _parenthetical_line: ($) =>
-      token(prec(3, new RegExp(`\\([^()\\n]*\\)[ \\t]*${EOL}`))),
+      containerLine($, $._paren_open, $._paren_content_run, $._paren_close),
 
-    _lyric_line: ($) => token(prec(3, new RegExp(`~[^\\n]*${EOL}`))),
+    _paren_close: ($) => token(')'),
 
-    _synopsis_line: ($) => token(prec(3, new RegExp(`=[^\\n]*${EOL}`))),
+    // Same shape as `_emphasis_content_run`, but built on PAREN_PIECE so
+    // a run stops before '(' or ')' instead of swallowing either —
+    // matching the original flat token's own exclusion of both (no
+    // nested/escaped parens support, same as before).
+    _paren_content_run: ($) => token(new RegExp(`(${PAREN_PIECE}|[ \\t])+`)),
+
+    // '~' + prose content, via `markedProseLine` above (#38 cheap
+    // tier).
+    //   - The marker is its own 1-character token, `prec(3)` matching
+    //     the flat token this replaces. That precedence, not length, is
+    //     what lets it win against `_prose_text` (which doesn't exclude
+    //     '~' from its own alphabet, so could otherwise swallow the
+    //     marker and everything after it as one longer, ordinary-prose
+    //     match) — confirmed empirically: tree-sitter's lexer prefers a
+    //     shorter, higher-precedence complete match over extending
+    //     through a lower-precedence one still in progress, and this is
+    //     the same precedence gap the flat token it replaces already
+    //     relied on against the same rival.
+    //   - Needs `prec.right`, unlike `_synopsis_line` below: `lyric` is
+    //     used inside `dialogue`'s `repeat1(choice($.parenthetical,
+    //     $.lyric, dialogue_line))`, with no separator required between
+    //     iterations, and `dialogue_line` is `_prose_line` under an
+    //     alias — so with `markedProseLine`'s trailing
+    //     `optional($._scene_eol)` unmatched, a piece right after '~'
+    //     is ambiguous between "more of this lyric line" and "this
+    //     lyric line already ended with zero content, and a fresh
+    //     dialogue_line/lyric alternative starts here instead". (See
+    //     `_forced_action_line` below for the fuller version of this
+    //     same reasoning — it needs the identical fix, for an analogous
+    //     reason.) `lyric`'s OWN `repeat1($._lyric_line)` grouping
+    //     (consecutive verse lines) was never the issue: the next
+    //     `_lyric_line` there always starts with '~', disjoint from
+    //     `_prose_piece`'s own alphabet.
+    _lyric_line: ($) => prec.right(markedProseLine($, $._lyric_marker)),
+
+    _lyric_marker: ($) => token(prec(3, '~')),
+
+    // See `_lyric_line` above — same shape, same reasoning, minus the
+    // `prec.right` (not needed: `synopsis` only appears once, in
+    // `_block`'s own choice, never adjacent to a `_prose_piece`-based
+    // repeat with no separator).
+    _synopsis_line: ($) => markedProseLine($, $._synopsis_marker),
+
+    _synopsis_marker: ($) => token(prec(3, '=')),
 
     _section_marker: ($) => token(prec(3, /#{1,6}/)),
 
     _page_break_line: ($) =>
       token(prec(6, new RegExp(`={3,}[ \\t]*${EOL}`))),
 
-    _forced_action_line: ($) => token(prec(3, new RegExp(`![^\\n]*${EOL}`))),
+    // See `_lyric_line` above — same shape, same `prec.right` reasoning
+    // (needed here for the same structural reason: `_forced_action_line`
+    // is one alternative in `action`'s own choice, immediately followed
+    // by `action`'s `repeat($._prose_line)`, with no separator required
+    // between them, so a piece right after '!' is ambiguous between
+    // "more of this line" and "this line already ended, and a fresh
+    // `_prose_line` starts here" — `prec.right` prefers the former).
+    //   - Also fixes a real inconsistency (#38 cheap tier): a forced
+    //     action line's own first line previously never got emphasis
+    //     parsing at all, even though its continuation lines (via
+    //     `action`'s own `repeat($._prose_line)`) already did.
+    _forced_action_line: ($) =>
+      prec.right(markedProseLine($, $._forced_action_marker)),
+
+    _forced_action_marker: ($) => token(prec(3, '!')),
 
     _title_key: ($) =>
       token(prec(5, new RegExp(`(${TITLE_KEYS}):[ \\t]*`))),
 
-    // Fallback: any non-blank line (trailing newline optional, so a final
-    // line at end-of-file still parses).
-    //
-    // The token stops before "/*", so a boneyard that opens mid-line —
-    // even one closing on a later line — is picked up by the `boneyard`
-    // extra instead of being swallowed by the line (#31). Token regular
-    // expressions cannot peek ahead, so "not containing /*" is spelled
-    // out as: runs of either a non-slash character or a slash followed
-    // by a non-star. The lone "/" alternative keeps a slash at the end
-    // of a line (or an unclosed "/*") lexing as plain text — the slash
-    // becomes its own little _any_line token — rather than an error.
-    // (A trailing /? on the main alternative would be wrong: longest-
-    // match would then swallow the opening slash of a real boneyard.)
-    _any_line: ($) =>
-      token(new RegExp(`(([^/\\r\\n]|/[^*\\r\\n])+|/)(${NL})?`)),
+    // Fallback: any non-blank line (trailing newline optional, so a
+    // final line at end-of-file still parses).
+    _any_line: ($) => token(new RegExp(`${ANY_LINE_BODY}(${NL})?`)),
+
+    // A title-page continuation value on its own line (#48).
+    //   - Per spec ("Values can be inline with the key or they can be
+    //     indented on a newline below the key... Indenting is 3 or more
+    //     spaces, or a tab"), only a same-line value is exempt from
+    //     indentation — this is what `title_entry` uses for every value
+    //     except the first.
+    //   - The indent itself is deliberately part of the reported span
+    //     here (unlike underline/boneyard/note's span fixes elsewhere
+    //     in this file): `title_value` isn't given a highlight
+    //     attribute that paints blank cells, so the same low-priority
+    //     reasoning that left italic/bold unfixed applies here too —
+    //     not worth an external scanner for a cosmetic-only span
+    //     difference.
+    _indented_line: ($) =>
+      token(new RegExp(`([ ]{3,}|\\t)${ANY_LINE_BODY}(${NL})?`)),
 
     _blank: ($) => token(new RegExp(`[ \\t]*${NL}`)),
   },
