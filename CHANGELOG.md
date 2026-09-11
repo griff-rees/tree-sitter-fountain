@@ -39,13 +39,14 @@ tags; registry publishing is tracked in
   spaces, or a tab), per spec — previously any line was silently
   accepted, regardless of indentation
   ([#48](https://github.com/griff-rees/tree-sitter-fountain/issues/48)).
-- `queries/highlights-emphasis-colours.scm`: an opt-in-by-default
-  companion to `highlights.scm` with one colour-fallback line per
-  emphasis type (`italic`/`bold`/`bold_italic`/`underline`), each
-  independent so a user who's verified their terminal/font already
-  renders some of the four can trim just those lines from their own
-  installed copy. See the README's "Colour fallbacks for emphasis"
-  section.
+- `queries/highlights.scm` now layers an independent colour fallback
+  under each of `italic`/`bold`/`bold_italic`/`underline`'s existing
+  semantic captures, so nesting (above) stays visible even on a
+  terminal/font that can't render the semantic attribute itself. A
+  user who's verified their own setup already renders one or more of
+  the four distinctly can trim the matching colour line from their
+  own installed copy — see the README's "Colour fallbacks for
+  emphasis" section.
 - `title_value` (title page "Key: value" content) now supports inline
   emphasis the same way `action`/`dialogue_line` already did —
   previously flat, opaque text only, even for the canonical Brick &
@@ -80,9 +81,16 @@ tags; registry publishing is tracked in
   at once: a nested span rendered with the identical fallback colour
   as its parent, making it indistinguishable on any terminal/font that
   also couldn't render the semantic attribute — confirmed empirically
-  via Neovim's own highlighter. Each now gets its own colour, moved
-  into the new `highlights-emphasis-colours.scm`
+  via Neovim's own highlighter. Each now gets its own colour
   ([#38](https://github.com/griff-rees/tree-sitter-fountain/issues/38)).
+  An initial attempt shipped these four as a separate, opt-in
+  `highlights-emphasis-colours.scm` file the README had users merge in
+  by hand — reverted the same day: a consumer's tree-sitter query
+  loader only ever auto-discovers a file literally named
+  `highlights.scm`, so the second file silently did nothing unless
+  merged in exactly right, confirmed the hard way when a routine local
+  install got this wrong. Folded directly into `highlights.scm` as the
+  default instead, colours included, no merge step required.
 
 Malformed title-page structure (e.g. an unindented continuation value)
 now surfaces as a genuine parse `ERROR` rather than the previous
