@@ -184,6 +184,32 @@
     }
   },
   {
+    "type": "dual_dialogue",
+    "named": true,
+    "fields": {
+      "first": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "dialogue",
+            "named": true
+          }
+        ]
+      },
+      "second": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "dialogue",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "italic",
     "named": true,
     "fields": {},
@@ -335,6 +361,10 @@
         },
         {
           "type": "dialogue",
+          "named": true
+        },
+        {
+          "type": "dual_dialogue",
           "named": true
         },
         {

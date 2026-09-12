@@ -117,6 +117,51 @@ function markedProseLine($, marker) {
   return seq(marker, repeat($._prose_piece), optional($._scene_eol));
 }
 
+// A dialogue block's own shape: a character cue followed by one or more
+// lines of content.
+//   - Factored out (#11) so `dual_dialogue` can build its SECOND member
+//     from the mandatory-marker `_dual_character` cue.
+//   - Still produces the exact same node shape ordinary `dialogue`
+//     does — see `dual_dialogue`'s own comment for why that matters.
+function dialogueBody($, character) {
+  return seq(
+    field('character', character),
+    repeat1(choice($.parenthetical, $.lyric, alias($._prose_line, $.dialogue_line)))
+  );
+}
+
+// A structured character cue: name (bare or forced "@NAME"), zero-or-
+// more extensions, and the '^' dual-dialogue marker.
+//   - Shared by `character` and `_dual_character` (#11) — they differ
+//     only in whether the marker is optional or required.
+//   - `markerRequired: false` (`character`):
+//     - Bare-name branch has no fallback of its own — name, extensions
+//       and marker are all pre-validated by the external
+//       `_character_name` token (see its own comment).
+//     - Forced-name branch keeps its flat `_forced_character_line`
+//       fallback for a malformed extension.
+//   - `markerRequired: true` (`_dual_character`): drops that flat
+//     fallback entirely — it has no marker field to offer, so it could
+//     never satisfy "marker required"; keeping it would be dead grammar.
+function characterCue($, markerRequired) {
+  const marker = field('marker', alias($._character_marker, $.character_marker));
+  const bareName = seq(
+    field('name', alias($._character_name, $.character_name)),
+    repeat(field('extension', alias($._character_extension, $.character_extension))),
+    markerRequired ? marker : optional(marker),
+    $._character_eol
+  );
+  const forcedName = seq(
+    field('name', alias($._forced_character_name, $.character_name)),
+    repeat(field('extension', alias($._character_extension, $.character_extension))),
+    markerRequired ? marker : optional(marker),
+    $._character_eol
+  );
+  return markerRequired
+    ? choice(bareName, forcedName)
+    : choice(bareName, choice(forcedName, $._forced_character_line));
+}
+
 // A container's own open/close delimiter pair, wrapping content that
 // may include ANY of the four emphasis types (`centered`/
 // `parenthetical`, #38 Tier 2) plus a plain content-run token specific
@@ -300,6 +345,13 @@ module.exports = grammar({
     // dash wins: a split at any earlier dash cannot parse the rest of
     // the line and dies off.
     [$.location],
+    // The dual-dialogue fork (#11): after a `dialogue` block and its
+    // trailing blank(s), still deciding whether it stands alone as its
+    // own `_block` or is the `first` half of a `dual_dialogue`.
+    //   - Resolved by `dual_dialogue`'s own `prec.dynamic`.
+    //   - Both readings need declaring here first, so the parser follows
+    //     each long enough to find out.
+    [$._block, $.dual_dialogue],
   ],
 
   rules: {
@@ -351,6 +403,7 @@ module.exports = grammar({
         $.synopsis,
         $.section,
         $.page_break,
+        $.dual_dialogue,
         $.dialogue,
         $.action
       ),
@@ -437,61 +490,75 @@ module.exports = grammar({
 
     // === Dialogue ===
 
-    dialogue: ($) =>
+    dialogue: ($) => prec.dynamic(2, dialogueBody($, $.character)),
+
+    // Two adjacent dialogue blocks side by side (#11): the second one's
+    // character cue carries the '^' dual-dialogue marker (spec's "lay
+    // this out next to the previous speech" signal). No scanner needed —
+    // grouping is decided purely by grammar shape:
+    //   - `_dual_character` (below): `character`'s own shape, marker
+    //     field MANDATORY instead of optional — reachable here only when
+    //     marked.
+    //   - Real ambiguity remains even so: a marked second dialogue can
+    //     ALSO complete as its own standalone `$.dialogue` (marker is
+    //     optional there too).
+    //     - Both readings stay live (GLR) until resolved.
+    //     - `prec.dynamic` below breaks the tie in favour of grouping.
+    //   - No preceding dialogue to pair with (or some other block
+    //     precedes it)? Falls back to an ordinary marked standalone
+    //     `dialogue` — same as today, no parse ERROR.
+    //   - Both members keep the ordinary `dialogue` node shape —
+    //     `second` is built from the SAME `dialogueBody` helper, just
+    //     aliased back to it — so existing `dialogue` queries still
+    //     match either half.
+    dual_dialogue: ($) =>
       prec.dynamic(
-        2,
+        3,
         seq(
-          field('character', $.character),
-          repeat1(
-            choice(
-              $.parenthetical,
-              $.lyric,
-              alias($._prose_line, $.dialogue_line)
-            )
-          )
+          field('first', $.dialogue),
+          repeat1($._blank),
+          field('second', alias($._dual_dialogue_second, $.dialogue))
         )
       ),
 
+    // `dual_dialogue`'s second member, own named rule purely so
+    // `alias(..., $.dialogue)` above has a single rule REFERENCE to
+    // collapse into one node.
+    //   - Aliasing `dialogueBody`'s inline `seq(...)` directly instead
+    //     produced its `character` field as a stray sibling of
+    //     `first`/`second`, not nested inside `second`'s own `dialogue`.
+    //   - Same pitfall `title_value` hit for #49 — see that rule's
+    //     comment.
+    _dual_dialogue_second: ($) =>
+      dialogueBody($, alias($._dual_character, $.character)),
+
     // Structured character cue (#56): name, zero-or-more extensions,
-    // optional dual-dialogue marker — mirrors `scene_heading`'s split-
-    // token technique. `_character_cue_line` below is the unaliased
-    // mirror used by `action`'s fallback for the same tokens.
-    //
-    // The forced ("@NAME", #57) alternative gets the SAME structured
-    // shape, built on its own external `_forced_character_name` token
-    // (see src/scanner.c's `scan_forced_character_name`) — but, unlike
-    // the bare cue above, still falls back to the flat, unstructured
-    // `_forced_character_line` (scene_heading's own `choice(structured,
-    // _forced_scene_line)` pattern): a malformed extension (no closing
-    // ')') has nowhere else to go once `@` has committed the line to
-    // being SOME kind of character — there's no competing `action`
-    // reading the way the bare cue has, so without a flat escape hatch
-    // here a bad extension would surface as a genuine ERROR instead of
-    // gracefully degrading. `character_extension`/`character_marker`/
-    // `_character_eol` are reused as-is from the bare cue above — same
-    // tokens, same shape, only the name token and its alphabet differ.
-    character: ($) =>
-      choice(
-        seq(
-          field('name', alias($._character_name, $.character_name)),
-          repeat(
-            field('extension', alias($._character_extension, $.character_extension))
-          ),
-          optional(field('marker', alias($._character_marker, $.character_marker))),
-          $._character_eol
-        ),
-        choice(
-          seq(
-            field('name', alias($._forced_character_name, $.character_name)),
-            repeat(
-              field('extension', alias($._character_extension, $.character_extension))
-            ),
-            optional(field('marker', alias($._character_marker, $.character_marker))),
-            $._character_eol
-          ),
-          $._forced_character_line
-        )
-      ),
+    // optional dual-dialogue marker.
+    //   - Mirrors `scene_heading`'s split-token technique;
+    //     `_character_cue_line` below is the unaliased mirror used by
+    //     `action`'s fallback for the same tokens.
+    //   - The forced ("@NAME", #57) alternative gets the SAME
+    //     structured shape, on its own external `_forced_character_name`
+    //     token (see `scan_forced_character_name` in src/scanner.c).
+    //     - Unlike the bare cue, still falls back to the flat,
+    //       unstructured `_forced_character_line` (scene_heading's own
+    //       `choice(structured, _forced_scene_line)` pattern): a
+    //       malformed extension has nowhere else to go once `@` has
+    //       committed the line to being SOME kind of character — no
+    //       competing `action` reading the way the bare cue has.
+    //     - `character_extension`/`character_marker`/`_character_eol`
+    //       are reused as-is — same tokens, same shape, only the name
+    //       token and its alphabet differ.
+    character: ($) => characterCue($, false),
+
+    // `character`'s own shape, marker field made mandatory (#11) — see
+    // `dual_dialogue` above for why.
+    //   - No flat fallback branch here: a marked cue that fails
+    //     structured validation has no marker field to offer either
+    //     way, so it can never satisfy this rule.
+    //   - Falls through to ordinary `character` instead, via
+    //     `dialogue`'s standalone reading.
+    _dual_character: ($) => characterCue($, true),
 
     parenthetical: ($) => $._parenthetical_line,
 
