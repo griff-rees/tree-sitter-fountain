@@ -1,5 +1,8 @@
 # Rust artifacts
 target/
+# Library crate (no [[bin]]): Cargo.lock only pins this repo's own
+# resolution, consumers resolve their own — see #61.
+Cargo.lock
 
 # Node artifacts
 build/
