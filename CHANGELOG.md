@@ -10,6 +10,30 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+### Added
+
+- All-caps words in action text get a new `caps` node
+  ([#19](https://github.com/griff-rees/tree-sitter-fountain/issues/19)).
+  - Matches a run of one or more all-caps words (2+ characters each,
+    joined by single spaces) — the screenwriting convention for a
+    character's first introduction, a notable sound/prop, or a
+    camera-relevant element.
+  - Scoped to action (including forced `!ACTION`) only, not dialogue,
+    lyrics, synopses or title values.
+  - Clause/sentence punctuation (`,`/`.`/`:`/`;`/`!`/`?`/`"`/a `--`
+    dash) is never absorbed into the word; other punctuation (a single
+    hyphen, apostrophe) still is, so "T-1000"/"CONT'D" stay one word.
+  - `queries/highlights.scm`: `@label` + `@markup.strong`.
+
+### Documentation
+
+- README documents the spec-conformant ending forms (centered `> THE
+  END <` or forced `> FADE OUT.`) and why a bare `THE END` line gets no
+  special treatment
+  ([#18](https://github.com/griff-rees/tree-sitter-fountain/issues/18)).
+  - Also fixes a stale claim that same-line nested emphasis (`#38`)
+    wasn't yet supported.
+
 ## [0.10.0] - 2026-09-12
 
 ### Added

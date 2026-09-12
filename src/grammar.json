@@ -866,39 +866,68 @@
       "type": "PREC_DYNAMIC",
       "value": 0,
       "content": {
-        "type": "SEQ",
+        "type": "CHOICE",
         "members": [
           {
-            "type": "CHOICE",
+            "type": "SEQ",
             "members": [
               {
                 "type": "SYMBOL",
-                "name": "_prose_line"
+                "name": "_action_prose_line"
               },
+              {
+                "type": "REPEAT",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_action_prose_line"
+                }
+              }
+            ]
+          },
+          {
+            "type": "SEQ",
+            "members": [
               {
                 "type": "SYMBOL",
                 "name": "_forced_action_line"
               },
               {
-                "type": "SYMBOL",
-                "name": "_character_cue_line"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_transition_line"
-              },
-              {
-                "type": "SYMBOL",
-                "name": "_scene_start_line"
+                "type": "REPEAT",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_action_prose_line"
+                }
               }
             ]
           },
           {
-            "type": "REPEAT",
-            "content": {
-              "type": "SYMBOL",
-              "name": "_prose_line"
-            }
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "_character_cue_line"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "_transition_line"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "_scene_start_line"
+                  }
+                ]
+              },
+              {
+                "type": "REPEAT",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_prose_line"
+                }
+              }
+            ]
           }
         ]
       }
@@ -1108,6 +1137,116 @@
           "name": "_lbracket"
         }
       ]
+    },
+    "_action_prose_line": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "REPEAT1",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_action_prose_piece"
+            }
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_scene_eol"
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "_action_prose_piece": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "italic"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "bold"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "bold_italic"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "underline"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "caps"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_action_prose_text"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_caps_letter"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_star"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_star2"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_underscore"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_slash"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_backslash"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_lbracket"
+        }
+      ]
+    },
+    "_action_prose_text": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "(([^ \\t\\r\\n*_\\\\/\\[A-Z]|\\/[^*\\r\\n]|\\[[^\\[\\r\\n]|[A-Z][a-z])|\\\\[*_/\\[])(((([^ \\t\\r\\n*_\\\\/\\[A-Z]|\\/[^*\\r\\n]|\\[[^\\[\\r\\n]|[A-Z][a-z])|\\\\[*_/\\[])|[ \\t])*(([^ \\t\\r\\n*_\\\\/\\[A-Z]|\\/[^*\\r\\n]|\\[[^\\[\\r\\n]|[A-Z][a-z])|\\\\[*_/\\[]))?"
+      }
+    },
+    "_caps_letter": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "[A-Z]"
+      }
+    },
+    "caps": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "PATTERN",
+          "value": "([A-Z]([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-]|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-])+|[0-9]([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-]|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-])*[A-Z]([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-]|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-])*)( ([A-Z]([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-]|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-])+|[0-9]([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-]|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-])*[A-Z]([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-]|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?\"\\-])*))*"
+        }
+      }
     },
     "_prose_text": {
       "type": "TOKEN",
@@ -1615,7 +1754,7 @@
             "type": "REPEAT",
             "content": {
               "type": "SYMBOL",
-              "name": "_prose_piece"
+              "name": "_action_prose_piece"
             }
           },
           {
