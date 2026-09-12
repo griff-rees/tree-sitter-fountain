@@ -10,6 +10,8 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-12
+
 ### Added
 
 - Dual dialogue: two adjacent `dialogue` blocks group into one
