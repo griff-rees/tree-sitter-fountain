@@ -10,6 +10,8 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-12
+
 ### Added
 
 - Forced character cues (`@McCLANE`) get the same structured
