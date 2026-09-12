@@ -10,6 +10,8 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-12
+
 ### Added
 
 - All-caps words in action text get a new `caps` node
@@ -33,6 +35,11 @@ tags; registry publishing is tracked in
   ([#18](https://github.com/griff-rees/tree-sitter-fountain/issues/18)).
   - Also fixes a stale claim that same-line nested emphasis (`#38`)
     wasn't yet supported.
+- README and `grammar.js` document that `caps` is a surface-level
+  heuristic with real false positives (interjections like "STOP!",
+  fixed abbreviations like "AKA"), with a pointer to a possible future
+  per-project disambiguation list
+  ([#64](https://github.com/griff-rees/tree-sitter-fountain/issues/64)).
 
 ## [0.10.0] - 2026-09-12
 
