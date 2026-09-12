@@ -10,6 +10,33 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+### Added
+
+- Character cues now expose their structure instead of lexing as one
+  atomic token: `character` gains a `character_name` child, zero or
+  more `character_extension` children for parenthetical extensions
+  like `(V.O.)`/`(CONT'D)`, and an optional `character_marker` child
+  for the `^` dual-dialogue marker — each independently queryable and
+  highlighted (`queries/highlights.scm`). A disposable spike (never
+  merged) first tried splitting the cue into plain grammar tokens,
+  mirroring `scene_heading`'s technique; it broke broadly, including
+  ordinary capitalized action text ("The cat sat quietly."), because a
+  bare uppercase-letter prefix could commit to a doomed name token with
+  no legal close after it — the same "committed reading, no legal
+  close" ERROR `#38`'s Tier 2 (`parenthetical`/`centered`) hit. Fixed
+  the same way: the name is now an external scanner token
+  (`src/scanner.c`) that validates a legal whole cue — extensions,
+  marker, and a real trailing newline — exists ahead before ever
+  committing, so a false start falls back to ordinary action text
+  instead of erroring. The scanner also explicitly cedes to a bare
+  `INT`/`EXT`/`EST` scene-heading prefix and a leading `.` (forced
+  scene heading), since both are otherwise fully expressible within
+  the name's own alphabet and an external token always wins over an
+  internal one's `prec()` once it validates. `@`-forced character cues
+  (`@McCLANE`) are unchanged, deliberately out of scope for now — their
+  any-case alphabet needs its own separate design
+  ([#56](https://github.com/griff-rees/tree-sitter-fountain/issues/56)).
+
 ## [0.6.0] - 2026-09-11
 
 ### Added

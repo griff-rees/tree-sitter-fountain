@@ -49,7 +49,17 @@
   title: (section_title) @markup.heading.3)
  (#eq? @_marker "###"))
 
+; Character cues: coloured as a whole (also what a forced "@NAME" cue
+; gets, since that stays a flat, childless node — #56 didn't split it),
+; then the structured parts individually — same layering as
+; scene_heading above.
 (character) @constant
+
+(character_name) @constant
+
+(character_extension) @comment
+
+(character_marker) @punctuation.special
 
 (parenthetical) @string.special
 

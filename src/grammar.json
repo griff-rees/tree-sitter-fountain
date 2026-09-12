@@ -293,8 +293,63 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "_character_line"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "name",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_character_name"
+                },
+                "named": true,
+                "value": "character_name"
+              }
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "FIELD",
+                "name": "extension",
+                "content": {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_character_extension"
+                  },
+                  "named": true,
+                  "value": "character_extension"
+                }
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "marker",
+                  "content": {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_character_marker"
+                    },
+                    "named": true,
+                    "value": "character_marker"
+                  }
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_character_eol"
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -571,7 +626,7 @@
               },
               {
                 "type": "SYMBOL",
-                "name": "_character_line"
+                "name": "_character_cue_line"
               },
               {
                 "type": "SYMBOL",
@@ -1044,16 +1099,70 @@
         "value": "((([^ \\t\\r\\n*_\\\\/\\[><]|\\/[^*\\r\\n><]|\\[[^\\[\\r\\n><])|\\\\[*_/\\[])|[ \\t])+"
       }
     },
-    "_character_line": {
+    "_character_extension": {
       "type": "TOKEN",
       "content": {
         "type": "PREC",
         "value": 3,
         "content": {
           "type": "PATTERN",
-          "value": "[A-Z0-9 .'\\-]*[A-Z][A-Z0-9 .'\\-]*(\\([^()\\r\\n]*\\)[ \\t]*)*(\\^)?[ \\t]*\\r?\\n"
+          "value": "\\([^()\\r\\n]*\\)"
         }
       }
+    },
+    "_character_marker": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 3,
+        "content": {
+          "type": "STRING",
+          "value": "^"
+        }
+      }
+    },
+    "_character_eol": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "\\r?\\n"
+        }
+      }
+    },
+    "_character_cue_line": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_character_name"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_character_extension"
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_character_marker"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_character_eol"
+        }
+      ]
     },
     "_forced_character_line": {
       "type": "TOKEN",
@@ -1347,7 +1456,7 @@
   "conflicts": [
     [
       "character",
-      "action"
+      "_character_cue_line"
     ],
     [
       "scene_heading",
@@ -1406,6 +1515,10 @@
     {
       "type": "SYMBOL",
       "name": "_paren_open"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_character_name"
     }
   ],
   "inline": [],

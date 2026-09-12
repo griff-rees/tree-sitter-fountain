@@ -291,7 +291,8 @@ Hello.
 
 (screenplay
   (dialogue
-    character: (character)
+    character: (character
+      name: (character_name))
     (parenthetical
       (italic))
     (dialogue_line)))
@@ -308,7 +309,8 @@ Hello.
 
 (screenplay
   (dialogue
-    character: (character)
+    character: (character
+      name: (character_name))
     (dialogue_line)
     (dialogue_line)))
 
@@ -470,10 +472,12 @@ I said, ARE YOU READY?
 
 (screenplay
   (dialogue
-    (character)
+    (character
+      (character_name))
     (dialogue_line))
   (dialogue
-    (character)
+    (character
+      (character_name))
     (parenthetical)
     (dialogue_line)
     (dialogue_line)))
@@ -490,7 +494,8 @@ And this is **also** important.
 
 (screenplay
   (dialogue
-    (character)
+    (character
+      (character_name))
     (dialogue_line
       (italic))
     (dialogue_line
@@ -513,14 +518,90 @@ No, we are not.
 
 (screenplay
   (dialogue
-    (character)
+    (character
+      (character_name)
+      (character_extension))
     (dialogue_line))
   (dialogue
-    (character)
+    (character
+      (character_name))
     (dialogue_line))
   (dialogue
-    (character)
+    (character
+      (character_name)
+      (character_marker))
     (dialogue_line)))
+
+==============================
+Multiple extensions on one cue, with no space before them (#56)
+==============================
+
+STEEL(V.O.)(CONT'D)
+Still talking.
+
+---
+
+(screenplay
+  (dialogue
+    (character
+      (character_name)
+      (character_extension)
+      (character_extension))
+    (dialogue_line)))
+
+==============================
+A character cue followed by a blank line is action, not dialogue, even with an extension (#56)
+==============================
+
+CAPTION (V.O.)
+
+He walks away.
+
+---
+
+(screenplay
+  (action)
+  (action))
+
+==============================
+Character names that share a first letter with a scene-heading prefix are not mistaken for one (#56)
+==============================
+
+EVE
+Hello?
+
+EXTRA
+Over here.
+
+EST
+Just a name, not "EST." — no period or space follows it here.
+
+---
+
+(screenplay
+  (dialogue
+    (character
+      (character_name))
+    (dialogue_line))
+  (dialogue
+    (character
+      (character_name))
+    (dialogue_line))
+  (dialogue
+    (character
+      (character_name))
+    (dialogue_line)))
+
+==============================
+An ordinary capitalized sentence is action, not a false-started character cue (#56 regression check)
+==============================
+
+The cat sat quietly on the mat.
+
+---
+
+(screenplay
+  (action))
 
 ==============================
 Forced character
@@ -547,7 +628,8 @@ THEN WHO WAS AT THE DOOR?
 
 (screenplay
   (dialogue
-    (character)
+    (character
+      (character_name))
     (dialogue_line)))
 
 ==============================
@@ -565,7 +647,8 @@ OOMPA LOOMPA
 (screenplay
   (lyric)
   (dialogue
-    (character)
+    (character
+      (character_name))
     (lyric)))
 
 ==============================
@@ -733,7 +816,8 @@ that runs on]] there.
 
 (screenplay
   (dialogue
-    (character)
+    (character
+      (character_name))
     (dialogue_line
       (note))))
 
@@ -865,7 +949,8 @@ Hi /* aside */ there.
 
 (screenplay
   (dialogue
-    (character)
+    (character
+      (character_name))
     (dialogue_line
       (boneyard))))
 
@@ -1044,7 +1129,8 @@ She blows out the candles.
 (screenplay
   (lyric)
   (dialogue
-    (character)
+    (character
+      (character_name))
     (parenthetical)
     (lyric))
   (action))

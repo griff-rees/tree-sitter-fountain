@@ -120,6 +120,15 @@
 //     equivalent to what the real grammar walk does afterward — see
 //     `validate_simple_close` below.
 //
+// `CHARACTER_NAME` exists for the same reason again (#56), on a
+// character cue's own name: a plain-token attempt (spike, never merged)
+// broke on ordinary capitalized action text ("The cat sat quietly."),
+// because the name's own alphabet is satisfiable by a single letter,
+// with nothing to stop the parser committing to it as if it were a real
+// cue. See `scan_character_name` below for the full rationale,
+// including why it must also actively refuse text that a scene heading
+// or forced scene heading would otherwise claim.
+//
 // Order here must match `externals` in grammar.js exactly — external
 // token identity is positional.
 
@@ -134,6 +143,7 @@ typedef enum {
   UNDERLINE_CLOSE,
   CENTERED_OPEN,
   PAREN_OPEN,
+  CHARACTER_NAME,
 } TokenType;
 
 void *tree_sitter_fountain_external_scanner_create(void) { return NULL; }
@@ -566,6 +576,146 @@ static bool scan_paren_open(TSLexer *lexer) {
   return scan_simple_open(lexer, ')', PAREN_OPEN);
 }
 
+// === Character cue name (#56) ===
+//
+// Exists for the same "don't commit until the rest is confirmed" reason
+// as CENTERED_OPEN/PAREN_OPEN above — confirmed the hard way, via a
+// disposable spike never merged: a plain JS-level `_character_name`
+// token is satisfiable by a SINGLE uppercase letter ("at least one
+// uppercase letter" has no lower bound beyond that), so any ordinary
+// capitalized word ("The cat sat quietly.") let the lexer commit to a
+// one-character name token with no legal extension/marker/newline
+// after it — the same "committed reading, no legal close" ERROR the
+// file header describes for italic/bold/underline, not the graceful
+// scene_heading-style fallback the token's shape suggested it would
+// get (scene_heading's own fallback tokens are permissive enough, and
+// have no mandatory trailing token, to bleed cleanly into ordinary
+// prose on failure; this one's mandatory trailing real newline can't).
+//   - Unlike PAREN_OPEN/CENTERED_OPEN, the "delimiter" validated here is
+//     the variable-length name itself, not one fixed character — so
+//     this scans forward through the whole name alphabet first, THEN
+//     validates the rest (extensions, marker, real newline) before ever
+//     committing to the name as this token's span.
+//   - `_character_extension`/`_character_marker`/`_character_eol` in
+//     grammar.js stay plain, non-external tokens: once this token has
+//     validated a legal whole cue exists ahead, the real parse walking
+//     through those pieces afterward is deterministic — no ambiguity
+//     left for them to resolve.
+//   - Must also actively refuse a bare "INT."/"EXT."/"EST." scene
+//     heading prefix: it is fully expressible within this token's own
+//     name alphabet (uppercase letters, digits, space, '.', '\'', '-'),
+//     and — unlike internal tokens, which lose ties to
+//     `_scene_prefix`'s higher `prec()` — an external token always wins
+//     over an internal one when its validation succeeds (see the file
+//     header's note on `_forced_transition_line`), so nothing else
+//     would stop it from swallowing "INT. HOUSE - DAY" whole. The
+//     slash forms ("INT/EXT", "I/E") need no separate check: '/' isn't
+//     in this alphabet, so name-consumption stops there and the
+//     mandatory-real-newline requirement below already fails on
+//     whatever follows — the same reason a bare "CUT TO:" transition
+//     needs no explicit check either (nothing after "TO" but the ':'
+//     that requirement also rejects). A leading '.' (forced scene
+//     heading) is refused for the same reason but even more directly,
+//     inside `scan_character_name` itself — see its own comment.
+static bool is_character_name_char(int32_t c) {
+  return (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ' ||
+         c == '.' || c == '\'' || c == '-';
+}
+
+// Case-insensitive match of one ASCII letter against `upper` (already
+// known to be the upper-case form).
+static bool matches_ci(int32_t c, char upper) {
+  return c == upper || c == upper + ('a' - 'A');
+}
+
+static bool scan_character_name(TSLexer *lexer) {
+  // A leading '.' is always the forced-scene-heading marker
+  // (`_forced_scene_line`), never legitimate as a name's own first
+  // character — same "an explicit forcing marker always wins" rule
+  // this grammar already applies to '@'/'!'/'>'/'='/'~'. Mid-name
+  // periods ("DR. WATSON") are unaffected: this only rejects the name
+  // starting here, not periods appearing later in the general
+  // consumption loop below.
+  if (lexer->lookahead == '.') return false;
+
+  // Guard against a bare "INT"/"EXT"/"EST" scene-heading prefix — see
+  // the file comment above. Checked against only the first 3 characters
+  // (the longest of the three words), immediately followed by '.' or
+  // ' ' per `_scene_prefix`'s own boundary requirement in grammar.js.
+  // Whether or not this matches, those characters are equally valid
+  // NAME-alphabet content, so nothing is lost by having already
+  // consumed them here — the general consumption loop below just
+  // continues from wherever this leaves off.
+  static const char *const SCENE_WORDS[] = {"INT", "EXT", "EST"};
+  char buf[3];
+  int buffered = 0;
+  bool saw_upper = false;
+
+  while (buffered < 3 && is_character_name_char(lexer->lookahead)) {
+    buf[buffered] = (char)lexer->lookahead;
+    if (lexer->lookahead >= 'A' && lexer->lookahead <= 'Z') saw_upper = true;
+    lexer->advance(lexer, false);
+    buffered++;
+  }
+
+  if (buffered == 3 && (lexer->lookahead == '.' || lexer->lookahead == ' ')) {
+    for (unsigned i = 0; i < sizeof(SCENE_WORDS) / sizeof(SCENE_WORDS[0]); i++) {
+      const char *word = SCENE_WORDS[i];
+      if (matches_ci(buf[0], word[0]) && matches_ci(buf[1], word[1]) &&
+          matches_ci(buf[2], word[2])) {
+        return false;
+      }
+    }
+  }
+
+  while (is_character_name_char(lexer->lookahead)) {
+    if (lexer->lookahead >= 'A' && lexer->lookahead <= 'Z') saw_upper = true;
+    lexer->advance(lexer, false);
+  }
+  if (!saw_upper) return false; // needs at least one real letter
+
+  lexer->mark_end(lexer); // freeze the name's own span here
+
+  // Zero or more parenthetical extensions ("(V.O.)"/"(CONT'D)"), each
+  // possibly followed by more spaces/tabs before the next one or the
+  // marker — grammar.js's `extras` does the real consuming once this
+  // token is actually emitted; this is lookahead only.
+  while (true) {
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+      lexer->advance(lexer, false);
+    }
+    if (lexer->lookahead != '(') break;
+    lexer->advance(lexer, false); // '('
+    while (true) {
+      int32_t c = lexer->lookahead;
+      if (c == ')') {
+        lexer->advance(lexer, false);
+        break;
+      }
+      // No nested '(', no multi-line extensions — mirrors
+      // CHARACTER_EXTENSION's own [^()\r\n] content class.
+      if (c == 0 || c == '(' || c == '\n' || c == '\r') return false;
+      lexer->advance(lexer, false);
+    }
+  }
+
+  // Optional dual-dialogue marker.
+  if (lexer->lookahead == '^') {
+    lexer->advance(lexer, false);
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+      lexer->advance(lexer, false);
+    }
+  }
+
+  // A character cue always needs a REAL newline here (no EOF
+  // alternative) — matching a mere prefix of a line would misclassify
+  // it, same reasoning as `_character_eol` in grammar.js.
+  if (lexer->lookahead == '\r') lexer->advance(lexer, false);
+  if (lexer->lookahead != '\n') return false;
+
+  return emit_symbol(lexer, CHARACTER_NAME);
+}
+
 // === Dispatcher ===
 
 bool tree_sitter_fountain_external_scanner_scan(
@@ -582,10 +732,12 @@ bool tree_sitter_fountain_external_scanner_scan(
   bool want_underline_close = valid_symbols[UNDERLINE_CLOSE];
   bool want_centered_open = valid_symbols[CENTERED_OPEN];
   bool want_paren_open = valid_symbols[PAREN_OPEN];
+  bool want_character_name = valid_symbols[CHARACTER_NAME];
 
   if (!want_boneyard && !want_note && !want_italic_open && !want_italic_close &&
       !want_bold_open && !want_bold_close && !want_underline_open &&
-      !want_underline_close && !want_centered_open && !want_paren_open) {
+      !want_underline_close && !want_centered_open && !want_paren_open &&
+      !want_character_name) {
     return false;
   }
 
@@ -610,6 +762,10 @@ bool tree_sitter_fountain_external_scanner_scan(
 
   if (want_paren_open && lexer->lookahead == '(') {
     return scan_paren_open(lexer);
+  }
+
+  if (want_character_name && is_character_name_char(lexer->lookahead)) {
+    return scan_character_name(lexer);
   }
 
   if (lexer->lookahead == '_') {

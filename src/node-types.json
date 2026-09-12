@@ -84,6 +84,42 @@
   {
     "type": "character",
     "named": true,
+    "fields": {
+      "extension": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "character_extension",
+            "named": true
+          }
+        ]
+      },
+      "marker": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "character_marker",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "character_name",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "character_marker",
+    "named": true,
     "fields": {}
   },
   {
@@ -527,6 +563,10 @@
     "named": false
   },
   {
+    "type": "^",
+    "named": false
+  },
+  {
     "type": "_",
     "named": false
   },
@@ -538,6 +578,14 @@
     "type": "boneyard",
     "named": true,
     "extra": true
+  },
+  {
+    "type": "character_extension",
+    "named": true
+  },
+  {
+    "type": "character_name",
+    "named": true
   },
   {
     "type": "note",

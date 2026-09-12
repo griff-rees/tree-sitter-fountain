@@ -82,13 +82,13 @@ const TITLE_KEYS = [
   .map(ci)
   .join('|');
 
-// A character cue: at least one uppercase letter, no lowercase; digits,
-// spaces and simple punctuation allowed; optional (extensions) such as
-// (V.O.) or (CONT'D); optional ^ marker for dual dialogue.
-const CHARACTER_CUE =
-  `[A-Z0-9 .'\\-]*[A-Z][A-Z0-9 .'\\-]*` +
-  `(\\([^()\\r\\n]*\\)[ \\t]*)*` +
-  `(\\^)?[ \\t]*${NL}`;
+// A character cue's bare name (#56): at least one uppercase letter, no
+// lowercase; digits, spaces and simple punctuation allowed. Matched by
+// `$._character_name` — an EXTERNAL token, not a plain regex here (see
+// src/scanner.c's `scan_character_name` for why). Extensions
+// ("(V.O.)"/"(CONT'D)") and the "^" dual-dialogue marker are separate
+// tokens below, sequenced after it.
+const CHARACTER_EXTENSION = `\\([^()\\r\\n]*\\)`;
 
 // Any non-blank line's content. Shared by `_any_line` and
 // `_indented_line` below — same alphabet, only the leading indentation
@@ -270,12 +270,19 @@ module.exports = grammar({
     $._underline_close,
     $._centered_open,
     $._paren_open,
+    $._character_name,
   ],
 
   extras: ($) => [/[ \t]+/, $.note, $.boneyard],
 
   conflicts: ($) => [
-    [$.character, $.action],
+    // Same fork as scene_heading/_scene_start_line below (#56): while
+    // the parser is still deciding character vs. action, both readings
+    // share the same small token sequence — see `_character_cue_line`
+    // below. This supersedes a plain `[$.character, $.action]` entry
+    // (tree-sitter 0.26 flags that one "unnecessary" once this more
+    // specific entry exists; kept as just this one to stay warning-free).
+    [$.character, $._character_cue_line],
     // The heading-or-action fork: a heading-shaped line may instead be
     // the first line of an action paragraph (decided by whether a blank
     // line follows). While both readings are alive, each part of the
@@ -444,7 +451,22 @@ module.exports = grammar({
         )
       ),
 
-    character: ($) => choice($._character_line, $._forced_character_line),
+    // Structured character cue (#56): name, zero-or-more extensions,
+    // optional dual-dialogue marker — mirrors `scene_heading`'s split-
+    // token technique. `_character_cue_line` below is the unaliased
+    // mirror used by `action`'s fallback for the same tokens.
+    character: ($) =>
+      choice(
+        seq(
+          field('name', alias($._character_name, $.character_name)),
+          repeat(
+            field('extension', alias($._character_extension, $.character_extension))
+          ),
+          optional(field('marker', alias($._character_marker, $.character_marker))),
+          $._character_eol
+        ),
+        $._forced_character_line
+      ),
 
     parenthetical: ($) => $._parenthetical_line,
 
@@ -529,7 +551,7 @@ module.exports = grammar({
           choice(
             $._prose_line,
             $._forced_action_line,
-            $._character_line,
+            $._character_cue_line,
             $._transition_line,
             $._scene_start_line
           ),
@@ -834,7 +856,34 @@ module.exports = grammar({
     _centered_content_run: ($) =>
       token(new RegExp(`(${CENTERED_PIECE}|[ \\t])+`)),
 
-    _character_line: ($) => token(prec(3, new RegExp(CHARACTER_CUE))),
+    // `$._character_name` itself is declared only in `externals` above
+    // (#56) — see src/scanner.c's `scan_character_name`. The three
+    // tokens below are the plain, non-external remainder: once the name
+    // has validated that a legal whole cue exists ahead, walking through
+    // these is deterministic, no ambiguity left to resolve.
+    _character_extension: ($) => token(prec(3, new RegExp(CHARACTER_EXTENSION))),
+
+    _character_marker: ($) => token(prec(3, '^')),
+
+    // Requires a REAL newline (no EOF alternative), like `_scene_eol` —
+    // matching a mere prefix of a line would misclassify it. Precedence
+    // 1, like `_scene_eol`, so it wins over `_blank`.
+    _character_eol: ($) => token(prec(1, new RegExp(NL))),
+
+    // Hidden mirror of `character`'s own token sequence, unaliased, for
+    // `action`'s first-line fallback — the parser is still following
+    // both readings in parallel (GLR parsing) until the next line
+    // reveals which one wins; see `_scene_start_line` above for the same
+    // technique. Unlike `_scene_start_line`, no reordering is needed:
+    // extensions and the marker have one fixed order per spec, so this
+    // just repeats `character`'s own shape.
+    _character_cue_line: ($) =>
+      seq(
+        $._character_name,
+        repeat($._character_extension),
+        optional($._character_marker),
+        $._character_eol
+      ),
 
     _forced_character_line: ($) =>
       token(prec(3, new RegExp(`@[^\\n]*${EOL}`))),
