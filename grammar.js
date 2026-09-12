@@ -274,20 +274,56 @@ const FLANKING_SAFE = `${PROSE_PIECE}((${PROSE_PIECE}|[ \\t])*${PROSE_PIECE})?`;
 
 // === All-caps words in action (#19) ===
 //
-// A character usable inside an all-caps "word".
-//   - Excludes a lowercase letter, whitespace, or one of the inline-
+// A character usable inside an all-caps "word": BASE, or a hyphen
+// followed by another BASE character.
+//   - BASE excludes a lowercase letter, whitespace, one of the inline-
 //     emphasis/note/boneyard delimiter characters PROSE_CHAR already
-//     treats as reserved ('*'/'_'/'\\'/'/'/'[') — so a caps run gives
-//     way to a directly-adjacent emphasis/note/boneyard opener instead
-//     of swallowing it (e.g. "GUN*bang*" stops before '*').
-//   - Same first-refusal idea as PROSE_CHAR's own two-character
-//     lookaheads, just via outright exclusion rather than a lookahead
-//     alternative, since nothing here needs to stay literal content
-//     the way an unpaired '/' or '[' does.
+//     treats as reserved ('*'/'_'/'\\'/'/'/'['), or one of ','/'.'/':'/
+//     ';'/'!'/'?'/'"' — clause/sentence punctuation (English-specific;
+//     Unicode/other-language punctuation is out of scope, same as #22
+//     generally), not part of the word itself.
+//     - The delimiter exclusions give a caps run first refusal against
+//       a directly-adjacent emphasis/note/boneyard opener, same idea as
+//       PROSE_CHAR's own two-character lookaheads (just via outright
+//       exclusion here, since nothing needs to stay literal content the
+//       way an unpaired '/' or '[' does): "GUN*bang*" stops before '*'.
+//     - The punctuation exclusions mean "BAND,"/"JACK."/"TIME:"/
+//       "STOP!"/"WHAT?" highlight as "BAND"/"JACK"/"TIME"/"STOP"/"WHAT",
+//       leaving the punctuation as ordinary trailing content — the same
+//       way a sentence's own final period is never highlighted along
+//       with the last word before it.
+//     - There's no single Unicode/regex "punctuation" class that fits
+//       here: some punctuation (apostrophe, parentheses) stays INCLUDED
+//       on purpose, so "CONT'D"-style contractions still form one word
+//       — this has to be a curated exclusion list, not a blanket class.
+//     - `&` needs no exclusion of its own: it's not a letter or digit,
+//       so it can never form a word on its own (CAP_WORD's own
+//       requirements already fail it), and it isn't in this class
+//       either — "BRICK & STEEL" already comes out as two separate caps
+//       words with the "&" as plain text between them, nothing to fix.
+//     - A double quote is excluded even though the SAME character often
+//       opens a quotation too ("STOP" she said" vs a closing one) —
+//       this grammar has no way to tell which, so it's treated
+//       uniformly as a boundary; a single quote/apostrophe is NOT
+//       excluded for the opposite reason (excluding it would break
+//       "CONT'D"), leaving one narrow, accepted overlap: a single-
+//       quoted word like 'STOP' still keeps its closing quote.
+//   - A lone hyphen stays part of the word (so "T-1000"/"DEAD-END" still
+//     form one word), but the SAME character immediately followed by
+//     ANOTHER hyphen does not: "--" is a dash used as a separator, not a
+//     compound-word joiner, so "LANDSCAPE--STRIKING" splits into two
+//     words. Written as its own alternative (a hyphen, then a BASE
+//     character) rather than folded into BASE itself, since BASE's own
+//     job is "one ordinary character" — pairing a hyphen with what
+//     follows it needs the same two-character technique PROSE_CHAR uses
+//     for '/*'/'[[', just checking the OPPOSITE thing (that what
+//     follows ISN'T disqualifying, rather than that it IS).
 //   - Deliberately ASCII-only, like the rest of this grammar (Unicode
 //     support is tracked separately as #22) — a future case-folding fix
 //     belongs there, not duplicated here.
-const CAPS_CHAR = `[^a-z \\t\\r\\n*_\\\\/\\[]`;
+const CAPS_CHAR =
+  `([^a-z \\t\\r\\n*_\\\\/\\[,.:;!?"\\-]` +
+  `|-[^a-z \\t\\r\\n*_\\\\/\\[,.:;!?"\\-])`;
 
 // One "word": 2+ characters built from CAPS_CHAR, with at least one
 // uppercase letter somewhere in it.

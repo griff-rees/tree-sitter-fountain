@@ -20,6 +20,9 @@ tags; registry publishing is tracked in
     camera-relevant element.
   - Scoped to action (including forced `!ACTION`) only, not dialogue,
     lyrics, synopses or title values.
+  - Clause/sentence punctuation (`,`/`.`/`:`/`;`/`!`/`?`/`"`/a `--`
+    dash) is never absorbed into the word; other punctuation (a single
+    hyphen, apostrophe) still is, so "T-1000"/"CONT'D" stay one word.
   - `queries/highlights.scm`: `@label` + `@markup.strong`.
 
 ### Documentation

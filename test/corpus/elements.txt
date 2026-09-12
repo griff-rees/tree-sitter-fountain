@@ -148,6 +148,51 @@ A dog barks. I see it.
   (action))
 
 ==============================
+All-caps words split on clause/sentence punctuation, not swallowed into the word (#19)
+==============================
+
+This is the home of THE BOY BAND, AKA DAN and JACK.
+
+The DEAD-END STREET is dark.
+
+The LANDSCAPE--STRIKING sight.
+
+TIME: NOW.
+
+STOP! Wait.
+
+WHAT?! No.
+
+"STOP" she yelled.
+
+BRICK & STEEL is here.
+
+---
+
+(screenplay
+  (action
+    (caps)
+    (caps)
+    (caps))
+  (action
+    (caps))
+  (action
+    (caps)
+    (caps))
+  (action
+    (caps)
+    (caps))
+  (action
+    (caps))
+  (action
+    (caps))
+  (action
+    (caps))
+  (action
+    (caps)
+    (caps)))
+
+==============================
 All-caps highlighting is scoped to action, not lyric/synopsis/dialogue (#19)
 ==============================
 

@@ -57,6 +57,20 @@ meaning. It's scoped to action text only (including forced `!ACTION`),
 not dialogue, lyrics, synopses or title values, since those aren't part
 of the convention.
 
+Clause/sentence punctuation (English-specific: `,`, `.`, `:`, `;`, `!`,
+`?`, `"`, and `--` used as a dash) is never absorbed into the word —
+"BAND,", "JACK.", "STOP!" and "WHAT?" highlight as
+"BAND"/"JACK"/"STOP"/"WHAT", and "TIME: NOW" as two separate words, not
+one. Other punctuation stays part of the word: a single hyphen still
+joins a compound word ("T-1000", "DEAD-END"), an apostrophe still holds
+a contraction together ("CONT'D"), and `&` needs no special handling —
+it isn't a letter or digit, so "BRICK & STEEL" already comes out as two
+separate words either side of it. One narrow, accepted overlap: since
+English uses the same apostrophe character for both a contraction and a
+closing single quote, a single-quoted word like 'STOP' keeps its
+closing quote — fixing that would need distinguishing the two uses,
+which this grammar doesn't track.
+
 A related, separate convention covers how a screenplay signals its own
 ending. Per the [Fountain spec](https://fountain.io/syntax), a bare
 `THE END` line is plain action — it gets no special treatment, and (per
