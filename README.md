@@ -57,6 +57,26 @@ meaning. It's scoped to action text only (including forced `!ACTION`),
 not dialogue, lyrics, synopses or title values, since those aren't part
 of the convention.
 
+Being a surface-level heuristic, it fires on real false positives too,
+which any consumer building on this node (a highlighter, or a
+production-catalog extractor like [#46](https://github.com/griff-rees/tree-sitter-fountain/issues/46))
+should keep in mind:
+
+- An interjection or emphasis word written in capitals for effect —
+  "STOP!" or "WAIT!" — isn't introducing a character, sound, prop or
+  camera direction; it just happens to satisfy the same surface pattern.
+- A fixed abbreviation like "AKA" ("also known as") is correctly
+  capitalized on its own terms, not because it names anything. (In some
+  naming/cultural contexts the same letters could actually BE a name —
+  which only underlines that this grammar can't resolve real-world
+  ambiguity like that; it can only report what's written in capitals.)
+
+In short: `caps` means "the writer typed this in capitals", not "this
+is definitely a character/sound/prop/camera cue" — the two usually
+coincide, but not always. A per-project curated list to disambiguate
+this is tracked as a possible future companion-plugin feature
+([#64](https://github.com/griff-rees/tree-sitter-fountain/issues/64)).
+
 Clause/sentence punctuation (English-specific: `,`, `.`, `:`, `;`, `!`,
 `?`, `"`, and `--` used as a dash) is never absorbed into the word —
 "BAND,", "JACK.", "STOP!" and "WHAT?" highlight as

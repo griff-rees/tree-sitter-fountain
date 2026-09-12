@@ -1130,6 +1130,12 @@ module.exports = grammar({
     //       captures the convention's SURFACE FORM only, same limitation
     //       #19's own issue text already flags for any approach short of
     //       full semantic analysis.
+    //     - Real false positives follow from that: an emphasis
+    //       interjection ("STOP!") or a fixed abbreviation ("AKA") match
+    //       the same surface pattern without introducing anything at
+    //       all — see the README's own "All-caps words in action"
+    //       section for the fuller discussion, aimed at consumers
+    //       building on this node.
     //     - A run that happens to span an entire forced action line
     //       (`!THE CAR EXPLODES.`) is expected, not a bug.
     caps: ($) => token(prec(3, new RegExp(CAP_RUN))),
