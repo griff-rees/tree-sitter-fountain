@@ -271,6 +271,7 @@ module.exports = grammar({
     $._centered_open,
     $._paren_open,
     $._character_name,
+    $._forced_character_name,
   ],
 
   extras: ($) => [/[ \t]+/, $.note, $.boneyard],
@@ -455,6 +456,20 @@ module.exports = grammar({
     // optional dual-dialogue marker — mirrors `scene_heading`'s split-
     // token technique. `_character_cue_line` below is the unaliased
     // mirror used by `action`'s fallback for the same tokens.
+    //
+    // The forced ("@NAME", #57) alternative gets the SAME structured
+    // shape, built on its own external `_forced_character_name` token
+    // (see src/scanner.c's `scan_forced_character_name`) — but, unlike
+    // the bare cue above, still falls back to the flat, unstructured
+    // `_forced_character_line` (scene_heading's own `choice(structured,
+    // _forced_scene_line)` pattern): a malformed extension (no closing
+    // ')') has nowhere else to go once `@` has committed the line to
+    // being SOME kind of character — there's no competing `action`
+    // reading the way the bare cue has, so without a flat escape hatch
+    // here a bad extension would surface as a genuine ERROR instead of
+    // gracefully degrading. `character_extension`/`character_marker`/
+    // `_character_eol` are reused as-is from the bare cue above — same
+    // tokens, same shape, only the name token and its alphabet differ.
     character: ($) =>
       choice(
         seq(
@@ -465,7 +480,17 @@ module.exports = grammar({
           optional(field('marker', alias($._character_marker, $.character_marker))),
           $._character_eol
         ),
-        $._forced_character_line
+        choice(
+          seq(
+            field('name', alias($._forced_character_name, $.character_name)),
+            repeat(
+              field('extension', alias($._character_extension, $.character_extension))
+            ),
+            optional(field('marker', alias($._character_marker, $.character_marker))),
+            $._character_eol
+          ),
+          $._forced_character_line
+        )
       ),
 
     parenthetical: ($) => $._parenthetical_line,
@@ -885,6 +910,11 @@ module.exports = grammar({
         $._character_eol
       ),
 
+    // `$._forced_character_name` itself is declared only in `externals`
+    // above (#57) — see src/scanner.c's `scan_forced_character_name`.
+    // This flat token is the fallback `character` uses when that
+    // validation fails (a malformed extension, say) — same regex as
+    // before #57, unchanged.
     _forced_character_line: ($) =>
       token(prec(3, new RegExp(`@[^\\n]*${EOL}`))),
 

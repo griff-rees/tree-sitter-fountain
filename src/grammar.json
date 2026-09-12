@@ -352,8 +352,72 @@
           ]
         },
         {
-          "type": "SYMBOL",
-          "name": "_forced_character_line"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "name",
+                  "content": {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_forced_character_name"
+                    },
+                    "named": true,
+                    "value": "character_name"
+                  }
+                },
+                {
+                  "type": "REPEAT",
+                  "content": {
+                    "type": "FIELD",
+                    "name": "extension",
+                    "content": {
+                      "type": "ALIAS",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "_character_extension"
+                      },
+                      "named": true,
+                      "value": "character_extension"
+                    }
+                  }
+                },
+                {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "FIELD",
+                      "name": "marker",
+                      "content": {
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "_character_marker"
+                        },
+                        "named": true,
+                        "value": "character_marker"
+                      }
+                    },
+                    {
+                      "type": "BLANK"
+                    }
+                  ]
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_character_eol"
+                }
+              ]
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_forced_character_line"
+            }
+          ]
         }
       ]
     },
@@ -1519,6 +1583,10 @@
     {
       "type": "SYMBOL",
       "name": "_character_name"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_forced_character_name"
     }
   ],
   "inline": [],

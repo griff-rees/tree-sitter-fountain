@@ -10,6 +10,27 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+### Added
+
+- Forced character cues (`@McCLANE`) now get the same `character_name`/
+  `character_extension`/`character_marker` structure `#56` gave the
+  ordinary cue, instead of staying a flat, opaque token. The name is
+  now an external scanner token (`src/scanner.c`'s
+  `scan_forced_character_name`), sharing `#56`'s rest-of-cue validation
+  (extensions, marker, a real trailing newline) via a new
+  `validate_character_cue_rest` helper both scanners call. Two things
+  differ from the ordinary cue, confirmed empirically via another
+  disposable spike (never merged): the name's own alphabet is far more
+  permissive (any character, since `@` forces recognition regardless of
+  case) and needs no scene-heading/transition guard (nothing else can
+  start with `@`, so there's no other live reading to collide with);
+  and when validation fails (e.g. an unclosed extension), it falls back
+  to the flat `_forced_character_line` token rather than to ordinary
+  action text — mirroring `scene_heading`'s own
+  `choice(structured, _forced_scene_line)` pattern, since a forced cue
+  has no competing `action` reading the way the bare cue does
+  ([#57](https://github.com/griff-rees/tree-sitter-fountain/issues/57)).
+
 ## [0.8.0] - 2026-09-12
 
 ### Added
