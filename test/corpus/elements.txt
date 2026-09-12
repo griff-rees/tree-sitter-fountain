@@ -614,6 +614,53 @@ Yippie ki-yay!
 
 (screenplay
   (dialogue
+    (character
+      (character_name))
+    (dialogue_line)))
+
+==============================
+Forced character with an extension and a lowercase name (#57)
+==============================
+
+@Mr. Smith (V.O.)
+Elementary.
+
+---
+
+(screenplay
+  (dialogue
+    (character
+      (character_name)
+      (character_extension))
+    (dialogue_line)))
+
+==============================
+Forced character with the dual-dialogue marker (#57)
+==============================
+
+@steel ^
+Talking too.
+
+---
+
+(screenplay
+  (dialogue
+    (character
+      (character_name)
+      (character_marker))
+    (dialogue_line)))
+
+==============================
+Forced character with an unclosed extension falls back to a flat cue, no parse error (#57)
+==============================
+
+@bob (unclosed
+Hi there.
+
+---
+
+(screenplay
+  (dialogue
     (character)
     (dialogue_line)))
 

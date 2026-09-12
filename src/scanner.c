@@ -129,6 +129,22 @@
 // including why it must also actively refuse text that a scene heading
 // or forced scene heading would otherwise claim.
 //
+// `FORCED_CHARACTER_NAME` (#57) is the same idea again for `@NAME`
+// cues, with two differences confirmed empirically via another
+// disposable spike:
+//   - Its alphabet is far more permissive (any character at all, since
+//     `@` forces recognition regardless of case), so a plain token's
+//     "committed reading, no legal close" risk is if anything higher,
+//     not lower — but it needs no scene-heading/transition guard the
+//     way `CHARACTER_NAME` does: nothing else can start with `@`, so
+//     there is no OTHER live reading for that spike to have collided
+//     with.
+//   - When validation fails, this falls back to the flat
+//     `_forced_character_line` token (grammar.js) rather than to
+//     ordinary prose: a bad extension has nowhere else to go once `@`
+//     has already committed the line to being SOME kind of character.
+//     See `scan_forced_character_name` below.
+//
 // Order here must match `externals` in grammar.js exactly — external
 // token identity is positional.
 
@@ -144,6 +160,7 @@ typedef enum {
   CENTERED_OPEN,
   PAREN_OPEN,
   CHARACTER_NAME,
+  FORCED_CHARACTER_NAME,
 } TokenType;
 
 void *tree_sitter_fountain_external_scanner_create(void) { return NULL; }
@@ -628,6 +645,57 @@ static bool matches_ci(int32_t c, char upper) {
   return c == upper || c == upper + ('a' - 'A');
 }
 
+// A forced ("@NAME", #57) cue's name alphabet: anything at all except a
+// newline or the two reserved delimiters — '(' (starts an extension)
+// and '^' (the dual-dialogue marker) — so those still get parsed out
+// as their own tokens rather than swallowed as ordinary name text.
+static bool is_forced_character_name_char(int32_t c) {
+  return c != 0 && c != '\n' && c != '\r' && c != '(' && c != '^';
+}
+
+// Validates that a legal rest-of-cue follows the name whose span the
+// caller has ALREADY frozen with `mark_end` — zero or more parenthetical
+// extensions ("(V.O.)"/"(CONT'D)"), an optional "^" dual-dialogue
+// marker, then a REAL trailing newline (no EOF alternative — matching a
+// mere prefix of a line would misclassify it). Shared by
+// `scan_character_name` and `scan_forced_character_name` below: once
+// the name itself is settled, the rest is identical for both.
+static bool validate_character_cue_rest(TSLexer *lexer) {
+  // Zero or more parenthetical extensions, each possibly followed by
+  // more spaces/tabs before the next one or the marker — grammar.js's
+  // `extras` does the real consuming once the tokens are actually
+  // emitted; this is lookahead only.
+  while (true) {
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+      lexer->advance(lexer, false);
+    }
+    if (lexer->lookahead != '(') break;
+    lexer->advance(lexer, false); // '('
+    while (true) {
+      int32_t c = lexer->lookahead;
+      if (c == ')') {
+        lexer->advance(lexer, false);
+        break;
+      }
+      // No nested '(', no multi-line extensions — mirrors
+      // CHARACTER_EXTENSION's own [^()\r\n] content class.
+      if (c == 0 || c == '(' || c == '\n' || c == '\r') return false;
+      lexer->advance(lexer, false);
+    }
+  }
+
+  // Optional dual-dialogue marker.
+  if (lexer->lookahead == '^') {
+    lexer->advance(lexer, false);
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+      lexer->advance(lexer, false);
+    }
+  }
+
+  if (lexer->lookahead == '\r') lexer->advance(lexer, false);
+  return lexer->lookahead == '\n';
+}
+
 static bool scan_character_name(TSLexer *lexer) {
   // A leading '.' is always the forced-scene-heading marker
   // (`_forced_scene_line`), never legitimate as a name's own first
@@ -676,44 +744,34 @@ static bool scan_character_name(TSLexer *lexer) {
 
   lexer->mark_end(lexer); // freeze the name's own span here
 
-  // Zero or more parenthetical extensions ("(V.O.)"/"(CONT'D)"), each
-  // possibly followed by more spaces/tabs before the next one or the
-  // marker — grammar.js's `extras` does the real consuming once this
-  // token is actually emitted; this is lookahead only.
-  while (true) {
-    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
-      lexer->advance(lexer, false);
-    }
-    if (lexer->lookahead != '(') break;
-    lexer->advance(lexer, false); // '('
-    while (true) {
-      int32_t c = lexer->lookahead;
-      if (c == ')') {
-        lexer->advance(lexer, false);
-        break;
-      }
-      // No nested '(', no multi-line extensions — mirrors
-      // CHARACTER_EXTENSION's own [^()\r\n] content class.
-      if (c == 0 || c == '(' || c == '\n' || c == '\r') return false;
-      lexer->advance(lexer, false);
-    }
-  }
-
-  // Optional dual-dialogue marker.
-  if (lexer->lookahead == '^') {
-    lexer->advance(lexer, false);
-    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
-      lexer->advance(lexer, false);
-    }
-  }
-
-  // A character cue always needs a REAL newline here (no EOF
-  // alternative) — matching a mere prefix of a line would misclassify
-  // it, same reasoning as `_character_eol` in grammar.js.
-  if (lexer->lookahead == '\r') lexer->advance(lexer, false);
-  if (lexer->lookahead != '\n') return false;
-
+  if (!validate_character_cue_rest(lexer)) return false;
   return emit_symbol(lexer, CHARACTER_NAME);
+}
+
+// `@NAME` forced cue (#57). Assumes the caller has already confirmed
+// `lexer->lookahead == '@'`. The `@` itself is consumed as "skip" (like
+// leading whitespace elsewhere in this file): it is never part of the
+// reported `character_name` span, matching the bare cue's own name
+// above, which likewise excludes everything but the name itself.
+//
+// No scene-heading/transition guard needed here (unlike
+// `scan_character_name`): nothing else in the grammar can start with
+// `@`, so there is no OTHER live reading this could collide with — see
+// the file header. The name's own alphabet is far more permissive
+// (any character at all, since `@` forces recognition regardless of
+// case) and MAY be empty (the flat token this replaces, `@[^\n]*`,
+// allowed "@" alone with nothing after it).
+static bool scan_forced_character_name(TSLexer *lexer) {
+  lexer->advance(lexer, true); // '@', skipped — not part of the name
+
+  while (is_forced_character_name_char(lexer->lookahead)) {
+    lexer->advance(lexer, false);
+  }
+
+  lexer->mark_end(lexer); // freeze the name's own span here
+
+  if (!validate_character_cue_rest(lexer)) return false;
+  return emit_symbol(lexer, FORCED_CHARACTER_NAME);
 }
 
 // === Dispatcher ===
@@ -733,11 +791,12 @@ bool tree_sitter_fountain_external_scanner_scan(
   bool want_centered_open = valid_symbols[CENTERED_OPEN];
   bool want_paren_open = valid_symbols[PAREN_OPEN];
   bool want_character_name = valid_symbols[CHARACTER_NAME];
+  bool want_forced_character_name = valid_symbols[FORCED_CHARACTER_NAME];
 
   if (!want_boneyard && !want_note && !want_italic_open && !want_italic_close &&
       !want_bold_open && !want_bold_close && !want_underline_open &&
       !want_underline_close && !want_centered_open && !want_paren_open &&
-      !want_character_name) {
+      !want_character_name && !want_forced_character_name) {
     return false;
   }
 
@@ -766,6 +825,10 @@ bool tree_sitter_fountain_external_scanner_scan(
 
   if (want_character_name && is_character_name_char(lexer->lookahead)) {
     return scan_character_name(lexer);
+  }
+
+  if (want_forced_character_name && lexer->lookahead == '@') {
+    return scan_forced_character_name(lexer);
   }
 
   if (lexer->lookahead == '_') {
