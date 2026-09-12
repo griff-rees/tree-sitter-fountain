@@ -10,6 +10,8 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-12
+
 ### Added
 
 - Character cues now expose their structure instead of lexing as one
