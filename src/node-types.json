@@ -21,6 +21,10 @@
           "named": true
         },
         {
+          "type": "caps",
+          "named": true
+        },
+        {
           "type": "italic",
           "named": true
         },
@@ -608,6 +612,10 @@
     "type": "boneyard",
     "named": true,
     "extra": true
+  },
+  {
+    "type": "caps",
+    "named": true
   },
   {
     "type": "character_extension",

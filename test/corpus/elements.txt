@@ -112,7 +112,61 @@ Then he stands again.
 (screenplay
   (action)
   (action)
+  (action
+    (caps)))
+
+==============================
+All-caps words in action, mid-sentence and multi-word (#19)
+==============================
+
+A GUN gleams on the table.
+
+JOHN SMITH enters, drenched.
+
+A loud BANG echoes and a CRASH follows.
+
+---
+
+(screenplay
+  (action
+    (caps))
+  (action
+    (caps))
+  (action
+    (caps)
+    (caps)))
+
+==============================
+All-caps highlighting excludes solo single-letter words (#19)
+==============================
+
+A dog barks. I see it.
+
+---
+
+(screenplay
   (action))
+
+==============================
+All-caps highlighting is scoped to action, not lyric/synopsis/dialogue (#19)
+==============================
+
+~SHOUT LOUDLY
+
+=SHOUT LOUDLY
+
+BOB
+SHOUT LOUDLY
+
+---
+
+(screenplay
+  (lyric)
+  (synopsis)
+  (dialogue
+    (character
+      (character_name))
+    (dialogue_line)))
 
 ==============================
 Inline emphasis: italic, bold, bold italics, underline
@@ -370,6 +424,7 @@ Steel's face FILLS the _*Leupold Mark 4* scope_ housing.
 
 (screenplay
   (action
+    (caps)
     (underline
       (italic))))
 
@@ -806,7 +861,8 @@ He runs.
 ---
 
 (screenplay
-  (action)
+  (action
+    (caps))
   (action))
 
 ==============================
@@ -1051,7 +1107,8 @@ A line with a URL https://example.com in it.
 
 (screenplay
   (action)
-  (action))
+  (action
+    (caps)))
 
 ==============================
 Boneyard inside dialogue
@@ -1100,7 +1157,8 @@ Some action.
       (title_key)
       (title_value)
       (title_value)))
-  (action)
+  (action
+    (caps))
   (action))
 
 ==============================

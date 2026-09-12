@@ -113,8 +113,12 @@ const ANY_LINE_BODY = `(([^/\\r\\n]|/[^*\\r\\n])+|/)`;
 //   - `marker` must be a `$.`-referenced rule (not an inline token),
 //     since each caller needs its own distinctly-named marker for the
 //     lexer precedence reasoning documented at each call site.
-function markedProseLine($, marker) {
-  return seq(marker, repeat($._prose_piece), optional($._scene_eol));
+//   - `piece` defaults to the ordinary `_prose_piece`; `_forced_action_line`
+//     (#19) passes `_action_prose_piece` instead, so forced action gets
+//     the same all-caps treatment as ordinary action — see that rule's
+//     own comment.
+function markedProseLine($, marker, piece) {
+  return seq(marker, repeat(piece ?? $._prose_piece), optional($._scene_eol));
 }
 
 // A dialogue block's own shape: a character cue followed by one or more
@@ -268,6 +272,116 @@ const CENTERED_PIECE = prosePiece('><');
 // partially matching.
 const FLANKING_SAFE = `${PROSE_PIECE}((${PROSE_PIECE}|[ \\t])*${PROSE_PIECE})?`;
 
+// === All-caps words in action (#19) ===
+//
+// A character usable inside an all-caps "word": anything except a
+// lowercase letter, whitespace, or one of the inline-emphasis/note/
+// boneyard delimiter characters PROSE_CHAR already treats as reserved —
+// so a caps run gives way to a directly-adjacent emphasis/note/boneyard
+// opener instead of swallowing it (e.g. "GUN*bang*" stops before '*',
+// same first-refusal idea as PROSE_CHAR's own two-character lookaheads,
+// just via outright exclusion here rather than a lookahead alternative,
+// since nothing here needs to stay literal content the way an unpaired
+// '/' or '[' does).
+//   - Deliberately ASCII-only, like the rest of this grammar (Unicode
+//     support is tracked separately as #22) — a future case-folding fix
+//     belongs there, not duplicated here.
+const CAPS_CHAR = `[^a-z \\t\\r\\n*_\\\\/\\[]`;
+
+// One "word": 2+ characters built from CAPS_CHAR, starting with an
+// uppercase letter or a digit, with at least one uppercase letter
+// somewhere in it — a run of pure punctuation/digits doesn't qualify,
+// and neither does a single stray capital ("A"/"I"), which would
+// otherwise fire on every sentence-initial article or pronoun in
+// ordinary action prose.
+//   - The leading character is deliberately restricted to [A-Z0-9]
+//     rather than the full CAPS_CHAR class (which also contains e.g.
+//     '~'/'='/'!'/'#'/'>'): those are this grammar's OWN block-marker
+//     characters, each only meaningful as the very first character of a
+//     line. An earlier, more permissive version of this pattern let a
+//     marker combine with the very next uppercase letter into what
+//     looked like a legal 2-character word (e.g. "~A" in "~A *lyric*
+//     line") — since that starts at the same lexer position as the
+//     marker token itself, and `caps` and (say) `_lyric_marker` share
+//     the same `prec(3)`, the LONGER match won the tie and silently
+//     turned an entire `lyric` block into `action` instead. Restricting
+//     the leading character removes the collision at its source: none
+//     of those marker characters can ever start a `caps` word, so they
+//     never compete with `caps` for a token starting in the same place.
+//   - Two alternatives, not one pattern plus a lookahead (the Rust regex
+//     crate tree-sitter compiles against — see the Development section
+//     of README.md — has no lookaround support): a letter-first word
+//     needs only 1+ more CAPS_CHAR to reach the 2-character minimum
+//     (the leading letter itself already satisfies "has an uppercase
+//     letter"); a digit-first word additionally needs a real [A-Z]
+//     somewhere in its own tail, or a lone number like "2016" would
+//     wrongly qualify.
+const CAP_WORD = `([A-Z]${CAPS_CHAR}+|[0-9]${CAPS_CHAR}*[A-Z]${CAPS_CHAR}*)`;
+
+// A run of one or more such words joined by a single literal space —
+// e.g. "JOHN SMITH" or "CAPTION (V.O.)" stay one combined `caps` node,
+// matching the convention's own "character's first introduction" case
+// (#19's issue text). Exactly one space, not `[ \t]+`: two-or-more
+// spaces (or a tab) between otherwise-qualifying words is treated as a
+// real break instead — an accepted simplification, see `caps`'s own
+// comment below for the fuller design discussion.
+const CAP_RUN = `${CAP_WORD}( ${CAP_WORD})*`;
+
+// `_action_prose_text`'s own alphabet (#19): like PROSE_CHAR (see its
+// own comment above) but additionally refuses to fold an uppercase
+// letter together with a FOLLOWING all-caps-compatible character into
+// ordinary content — giving `caps` above the same kind of two-character
+// "first refusal" PROSE_CHAR already grants '/*' and '[[' (see its own
+// comment), just for a different rival, and in the opposite direction
+// (excluding an unsafe pairing, rather than permitting a safe one).
+//   - Without this, `_action_prose_text`'s greedy FLANKING_SAFE-based
+//     match has no natural stopping point partway through a line: it
+//     doesn't distinguish letters by case at all, so e.g. "A GUN
+//     gleams." would be swallowed as ONE token — "GUN" included — since
+//     nothing before it hints a caps word is coming. Precedence alone
+//     (as `_lyric_marker`/`_synopsis_marker`/`_forced_action_marker` use
+//     against plain `_prose_text`) only decides which of two tokens
+//     STARTING AT THE SAME POSITION wins — it can't make a token stop
+//     partway through a match it's already committed to, which is
+//     exactly what's needed here.
+//   - The exclusion: an uppercase letter is only allowed as ordinary
+//     content when followed by a LOWERCASE letter (an ordinary
+//     capitalized word like "The") — anything else that could extend a
+//     caps word (another uppercase letter, a digit, or one of the
+//     handful of punctuation characters CAP_WORD's own CAPS_CHAR
+//     allows) is refused, opening a token boundary there for `caps` to
+//     claim instead. A solo uppercase letter with nothing safe to pair
+//     with (line-final, or directly against a delimiter) falls to
+//     `_caps_letter` below, the same "structured token failed, one
+//     literal character instead" idiom `_star`/`_underscore` already use.
+//   - Deliberately letter-led only: a digit-led caps word (e.g. "9MM")
+//     needs to confirm a real letter appears somewhere LATER in the
+//     run, which a fixed 2-character lookahead can't determine in
+//     general — an accepted scope limit. Such a word is still fully
+//     recognised when it starts a fresh piece already (right after a
+//     marker, an emphasis span, or at the very start of a line, where
+//     `caps`'s own longer match simply wins on length); mid-run and
+//     preceded by ordinary prose with no boundary in between, only its
+//     trailing letters are recognised (its own leading digits fall to
+//     the ordinary base class instead, one boundary earlier than ideal
+//     but never a parse error).
+const ACTION_PROSE_CHAR =
+  `([^ \\t\\r\\n*_\\\\/\\[A-Z]` +
+  `|/[^*\\r\\n]` +
+  `|\\[[^\\[\\r\\n]` +
+  `|[A-Z][a-z])`;
+
+function actionProsePiece() {
+  return `(${ACTION_PROSE_CHAR}|${ESCAPED_DELIM})`;
+}
+
+const ACTION_PROSE_PIECE = actionProsePiece();
+
+// Same "sandwich" shape as FLANKING_SAFE above, built on
+// ACTION_PROSE_PIECE instead of PROSE_PIECE.
+const ACTION_FLANKING_SAFE =
+  `${ACTION_PROSE_PIECE}((${ACTION_PROSE_PIECE}|[ \\t])*${ACTION_PROSE_PIECE})?`;
+
 // === Notes (#9, #38-span-fix) ===
 //
 // `note`'s matching now lives in src/scanner.c's `scan_note`, alongside
@@ -302,6 +416,26 @@ module.exports = grammar({
   //     plain-token attempt hit the identical failure mode against an
   //     unclosed forced transition (#38 Tier 2 — see src/scanner.c for
   //     the full rationale on both).
+  //   - `caps` (#19) was tried as a THIRD external-scanner candidate too
+  //     (same leading-whitespace span bug as `boneyard`/`note`), but
+  //     reverted: `caps` and `CHARACTER_NAME` alphabets genuinely
+  //     overlap ([A-Z0-9]), and unlike a grammar-level conflict, the
+  //     LEXER can only return ONE token for a given position — there is
+  //     no external-scanner equivalent of "try A, and if it fails, try B
+  //     from the same start" once `scan_character_name` has advanced.
+  //     Worse, confirmed empirically: an external token wins
+  //     UNCONDITIONALLY over ANY internal one on success, with no
+  //     visibility into which internal tokens are also live at that
+  //     position — `caps` firing externally silently ate `transition`'s
+  //     own `_transition_line` token whenever a transition directly
+  //     followed action with no blank line (`_block`'s one exception to
+  //     needing a blank between siblings), since that position has
+  //     `_transition_line` internally competing but no `CHARACTER_NAME`
+  //     to guard against it. `caps` stays a plain, internal token below
+  //     instead (see its own comment) — the leading-whitespace span
+  //     inaccuracy is a known, accepted limitation, not worth this
+  //     amount of collision risk with every other internal token in the
+  //     grammar to fix.
   // Order here must match `enum TokenType` in src/scanner.c exactly —
   // external token identity is positional.
   externals: ($) => [
@@ -639,15 +773,53 @@ module.exports = grammar({
     action: ($) =>
       prec.dynamic(
         0,
-        seq(
-          choice(
-            $._prose_line,
-            $._forced_action_line,
-            $._character_cue_line,
-            $._transition_line,
-            $._scene_start_line
-          ),
-          repeat($._prose_line)
+        choice(
+          // Genuinely plain action, first line and every continuation
+          // line alike: gets the all-caps `caps` treatment (#19). Forced
+          // action (`!ACTION`) is included here too, via
+          // `_forced_action_line`'s own `_action_prose_piece` (see its
+          // comment) — it's still ordinary action, just marker-led.
+          seq($._action_prose_line, repeat($._action_prose_line)),
+          seq($._forced_action_line, repeat($._action_prose_line)),
+          // A line that lexed as a scene heading/character cue/
+          // transition shape but turned out to be ordinary action: its
+          // own fallback token and EVERY line after it stay on the
+          // plain, unmodified `_prose_line` — not `_action_prose_line`
+          // — so this branch's alphabet matches EXACTLY what the
+          // reading it competes with expects at every position, not
+          // just the first line (#19 regression fix).
+          //   - This isn't cosmetic: an earlier version of this rule
+          //     used `_action_prose_line` here too, and it silently
+          //     broke the `character`/`_character_cue_line` GLR fork
+          //     (see that pair's own `conflicts` entry and comments)
+          //     for any input where the line right after an otherwise-
+          //     valid character cue happened to be entirely upper-case
+          //     (e.g. "DAN\nTHEN WHO WAS AT THE DOOR?"). The reason:
+          //     `character`'s own continuation (`dialogue_line`, built
+          //     on the plain, unmodified `_prose_piece`) and
+          //     `_character_cue_line`'s continuation must offer an
+          //     IDENTICAL follow-set of lookahead tokens for tree-sitter
+          //     to keep treating that position as ambiguous (needing a
+          //     GLR fork resolved by `dialogue`'s `prec.dynamic`) —
+          //     once `caps` existed as a token reachable from ONE side
+          //     only, any lookahead of `caps` had just one legal
+          //     LALR-table action (reduce `_character_cue_line`), so
+          //     tree-sitter stopped forking there at all and the
+          //     `action` reading won outright, bypassing precedence
+          //     entirely rather than losing to it.
+          //   - `_scene_start_line`/`_transition_line` don't strictly
+          //     need this — their own competing readings
+          //     (`scene_heading`/`transition`) have no multi-line body
+          //     to keep in lock-step with; that ambiguity is "blank line
+          //     next, ends the block" vs "more text, continues as
+          //     action", never a token-for-token race the way
+          //     `character`/`dialogue` is — but they're grouped here
+          //     too for one simple, easy-to-audit rule: every fallback
+          //     mirror keeps the same plain continuation, `caps` or not.
+          seq(
+            choice($._character_cue_line, $._transition_line, $._scene_start_line),
+            repeat($._prose_line)
+          )
         )
       ),
 
@@ -797,6 +969,115 @@ module.exports = grammar({
         $._backslash,
         $._lbracket
       ),
+
+    // `action`'s own line, and the alphabet it builds on (#19): the
+    // same overall shape as `_prose_line`/`_prose_piece` above, but with
+    // `$.caps` added and the plain-text/fallback pieces swapped for
+    // action-specific variants (`_action_prose_text`/`_caps_letter` —
+    // see their own comments) — for the screenwriting convention of
+    // writing a character's first introduction, a significant
+    // sound/prop, or a camera-relevant element in all capitals within
+    // action text.
+    //   - Scoped to `action` only, not shared with `dialogue_line`,
+    //     `lyric`, `synopsis` or `title_value` — those keep the plain
+    //     `_prose_line`/`_prose_piece` above unchanged, since the
+    //     convention is specifically an action-line one (#19's own issue
+    //     title). `_forced_action_line` below opts in too, via
+    //     `markedProseLine`'s own `piece` parameter, since forced action
+    //     (`!ACTION`) is still ordinary action, just written with a
+    //     leading marker.
+    //   - Deliberately NOT threaded into `italic`/`bold`/`underline`'s
+    //     own nested content (`_emphasis_content_run`): those rules are
+    //     shared across every element that supports emphasis, not just
+    //     action, and duplicating the whole emphasis rule set as
+    //     "action-flavoured" variants just for this would be a large
+    //     expansion out of proportion to the feature — a caps word
+    //     *inside* an emphasis span in action text is a known, accepted
+    //     scope limit for now, same spirit as #49/#55 leaving
+    //     `section_title` out of their own scope.
+    //   - `action`'s OWN fallback first-line tokens
+    //     (`_character_cue_line`/`_transition_line`/`_scene_start_line`,
+    //     used when a line lexed as one of those shapes but turned out
+    //     to be action) are flat tokens, not built from `_prose_piece` at
+    //     all, so they don't get caps treatment either — a narrow,
+    //     documented limitation: only a first line that ends up flowing
+    //     through this rule (i.e. wasn't heading/cue/transition-shaped
+    //     to begin with) sees `caps`. Fixing that would mean rebuilding
+    //     those fallbacks' own alphabets around `_action_prose_piece`,
+    //     which none of the elements they're mirroring
+    //     (`scene_heading`/`character`/`transition`) need for themselves.
+    //   - No separate `prec.right` needed beyond what `_prose_line`
+    //     already uses: `_action_prose_piece` only ever competes with
+    //     itself within the same `repeat1`, same as `_prose_piece` does.
+    _action_prose_line: ($) =>
+      prec.right(seq(repeat1($._action_prose_piece), optional($._scene_eol))),
+
+    _action_prose_piece: ($) =>
+      choice(
+        $.italic,
+        $.bold,
+        $.bold_italic,
+        $.underline,
+        $.caps,
+        $._action_prose_text,
+        $._caps_letter,
+        $._star,
+        $._star2,
+        $._underscore,
+        $._slash,
+        $._backslash,
+        $._lbracket
+      ),
+
+    // `_action_prose_text`'s own alphabet, built from ACTION_PROSE_CHAR
+    // above (not the plain PROSE_CHAR every other line still uses) — see
+    // that constant's own comment for why action needs a different one.
+    _action_prose_text: ($) => token(new RegExp(ACTION_FLANKING_SAFE)),
+
+    // A solitary uppercase letter that neither `caps` (too short to
+    // qualify as its own word — see CAP_WORD's own 2-character minimum)
+    // nor `_action_prose_text` (excluded whenever a bare letter isn't
+    // safely paired with a following lowercase letter — see
+    // ACTION_PROSE_CHAR's own comment) can claim: line-final ("...saw
+    // A\n"), or directly against a delimiter/digit with no lowercase
+    // letter to pair with ("R2", "T*emphasis*"). Same "structured token
+    // failed, fall back to one literal character" idiom `_star`/
+    // `_underscore` already use below.
+    _caps_letter: ($) => token(/[A-Z]/),
+
+    // A run of ALL-CAPS words in action text (#19) — see CAP_RUN's own
+    // comment for the exact word-boundary rules.
+    //   - `prec(3)`, the same margin `_lyric_marker`/`_synopsis_marker`/
+    //     `_forced_action_marker` already rely on to beat `_prose_text`'s
+    //     greedy FLANKING_SAFE catch-all: at a shared starting position
+    //     (e.g. right after `!` in forced action, or at true block
+    //     start), `_action_prose_text` could otherwise win the tie by
+    //     extending further, so `caps` needs the same precedence margin
+    //     there — confirmed empirically the same way those markers were.
+    //     `_action_prose_text`'s OWN exclusions (see ACTION_PROSE_CHAR
+    //     above) do the heavier lifting mid-run, where a competing token
+    //     can't simply be out-precedenced (see that constant's own
+    //     comment for why): together they cover both cases.
+    //   - Deliberately a plain, internal token, not external: it hits
+    //     the same leading-whitespace span bug `boneyard`/`note`/
+    //     underline's OPEN token needed external scanning to fix, but
+    //     going external here collided with `_transition_line` in a way
+    //     those never did — see the `externals` comment above for the
+    //     full account. Accepted as a known, minor limitation: a caps
+    //     run preceded by whitespace that's skipped as an `extra` (i.e.
+    //     any caps word not immediately preceded by another real token,
+    //     e.g. "A GUN gleams.") reports its span starting one or more
+    //     columns early, into that whitespace, rather than at its own
+    //     first letter.
+    //   - A heuristic, not a semantic judgement: the grammar has no way
+    //     to know whether a given all-caps run is actually a character's
+    //     first introduction, a sound, a prop or just a writer's
+    //     personal emphasis style — it captures the convention's
+    //     SURFACE FORM only, same limitation #19's own issue text
+    //     already flags for any approach short of full semantic
+    //     analysis. A run that happens to span an entire forced action
+    //     line (`!THE CAR EXPLODES.`) is expected, not a bug.
+    caps: ($) => token(prec(3, new RegExp(CAP_RUN))),
 
     _prose_text: ($) => token(new RegExp(FLANKING_SAFE)),
 
@@ -1048,16 +1329,22 @@ module.exports = grammar({
     // See `_lyric_line` above — same shape, same `prec.right` reasoning
     // (needed here for the same structural reason: `_forced_action_line`
     // is one alternative in `action`'s own choice, immediately followed
-    // by `action`'s `repeat($._prose_line)`, with no separator required
-    // between them, so a piece right after '!' is ambiguous between
-    // "more of this line" and "this line already ended, and a fresh
-    // `_prose_line` starts here" — `prec.right` prefers the former).
+    // by `action`'s `repeat($._action_prose_line)`, with no separator
+    // required between them, so a piece right after '!' is ambiguous
+    // between "more of this line" and "this line already ended, and a
+    // fresh `_action_prose_line` starts here" — `prec.right` prefers the
+    // former).
     //   - Also fixes a real inconsistency (#38 cheap tier): a forced
     //     action line's own first line previously never got emphasis
     //     parsing at all, even though its continuation lines (via
-    //     `action`'s own `repeat($._prose_line)`) already did.
+    //     `action`'s own `repeat`) already did.
+    //   - Passes `$._action_prose_piece` (#19), not the default
+    //     `$._prose_piece`: forced action is still action, so its first
+    //     line gets the same all-caps `caps` treatment its own
+    //     continuation lines already get via `action`'s
+    //     `_action_prose_line`.
     _forced_action_line: ($) =>
-      prec.right(markedProseLine($, $._forced_action_marker)),
+      prec.right(markedProseLine($, $._forced_action_marker, $._action_prose_piece)),
 
     _forced_action_marker: ($) => token(prec(3, '!')),
 

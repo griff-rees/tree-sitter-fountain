@@ -113,6 +113,16 @@
 (lyric) @string
 (lyric) @markup.italic
 
+; All-caps words in action (#19): screenwriting convention for a
+; character's first introduction, notable sounds/props, or camera-
+; relevant elements. Coloured base plus the bold attribute, same
+; "coloured base plus attribute" pattern as centered/lyric above — bold
+; alone would be invisible here too, since the text is already all-caps.
+; @label is otherwise unused in this file, so it doesn't collide with
+; character/parenthetical/lyric/centered/title's own colours.
+(caps) @label
+(caps) @markup.strong
+
 (transition) @keyword
 
 ; Centered text: coloured base plus the bold attribute (bold alone is

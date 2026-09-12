@@ -20,16 +20,18 @@ for a rundown of what changed from 1.0.
   the prefix, location, time-of-day (after the last free ` - ` dash) and
   scene number (`#1#`) exposed as separate child nodes; forced headings
   remain a single unstructured node
-- Action, including forced `!ACTION`
+- Action, including forced `!ACTION` and all-caps words (a character's
+  first introduction, a notable sound/prop, or a camera-relevant
+  element — see [All-caps words in action](#all-caps-words-in-action)
+  below)
 - Character cues and dialogue, including extensions (`(V.O.)`), forced `@Characters`,
-  and the `^` dual-dialogue marker
-- Inline emphasis inside action and dialogue text: `*italics*`,
-  `**bold**`, `***bold italics***` and `_underline_`, including the
-  spec's flanking rule (spaces adjacent to a marker keep it literal)
-  and `\*`/`\_` escaping. Combining different emphasis types by
-  nesting one inside another on the same line (e.g.
-  `**bold *and italic* text**`) isn't recognised as one combined span
-  yet — each half is found separately where it stands alone
+  and the `^` dual-dialogue marker, plus dual dialogue (two adjacent
+  cues laid out side by side, spec's `^` marker on the second)
+- Inline emphasis inside action, dialogue, parenthetical, centered and
+  title-page text: `*italics*`, `**bold**`, `***bold italics***` and
+  `_underline_`, including the spec's flanking rule (spaces adjacent to
+  a marker keep it literal), `\*`/`\_` escaping, and same-line nesting
+  of one type inside another (e.g. `**bold *and italic* text**`)
 - Parentheticals
 - Lyrics (`~`)
 - Transitions (`CUT TO:` and forced `> Transition`), including the spec's
@@ -40,9 +42,34 @@ for a rundown of what changed from 1.0.
 - Page breaks (`===`)
 - Notes (`[[...]]`) and boneyards (`/* ... */`)
 
-Not yet parsed as distinct nodes: same-line nested emphasis (see
-above) — this currently remains part of its containing line.
-Contributions welcome.
+Contributions welcome — see `test/corpus/` for what's covered case by case.
+
+### All-caps words in action
+
+Screenwriting convention sets certain words in action lines in all
+capitals: a character's first introduction, a significant sound or
+prop, or a camera-relevant element. This is a heuristic, not a semantic
+judgement — the grammar has no way to know *why* a given run of
+capitals was written that way, so it highlights the convention's
+surface form (a run of one or more all-caps words, minimum two
+characters each, joined by single spaces) rather than any particular
+meaning. It's scoped to action text only (including forced `!ACTION`),
+not dialogue, lyrics, synopses or title values, since those aren't part
+of the convention.
+
+A related, separate convention covers how a screenplay signals its own
+ending. Per the [Fountain spec](https://fountain.io/syntax), a bare
+`THE END` line is plain action — it gets no special treatment, and (per
+the same character-cue-vs-action ambiguity that a lone all-caps line
+like `BRICK AND STEEL` already has to resolve) doesn't even get
+all-caps highlighting when it's the only line in its paragraph. The two
+spec-conformant ending forms are centered text (`> THE END <`, as in
+the *Brick & Steel* sample) or a forced transition (`> FADE OUT.`) —
+either renders as its own distinct, highlighted node. Writing `THE END`
+as its own line partway through an action paragraph (with a preceding
+non-blank line) *does* still pick up all-caps highlighting, just not
+the more emphatic centered/transition treatment a true ending
+convention gets.
 
 ## Using with Neovim
 
@@ -165,8 +192,8 @@ separate nodes. See the commentary in `grammar.js` for details.
 
 Issues and pull requests are very welcome — extra test cases in
 `test/corpus/` (real-world screenplays that misparse are especially
-valuable), the missing inline syntax above, and further editor queries
-(`folds.scm`, `indents.scm`) are all good places to start. Please run
+valuable) and further editor queries (`folds.scm`, `indents.scm`) are
+all good places to start. Please run
 `npx tree-sitter test` before submitting, and follow
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for
 commit messages. Contributors are expected to follow the
