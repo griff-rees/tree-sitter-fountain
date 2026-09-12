@@ -518,19 +518,20 @@ No, we are not.
 
 (screenplay
   (dialogue
-    (character
-      (character_name)
-      (character_extension))
+    character: (character
+      name: (character_name)
+      extension: (character_extension))
     (dialogue_line))
-  (dialogue
-    (character
-      (character_name))
-    (dialogue_line))
-  (dialogue
-    (character
-      (character_name)
-      (character_marker))
-    (dialogue_line)))
+  (dual_dialogue
+    first: (dialogue
+      character: (character
+        name: (character_name))
+      (dialogue_line))
+    second: (dialogue
+      character: (character
+        name: (character_name)
+        marker: (character_marker))
+      (dialogue_line))))
 
 ==============================
 Multiple extensions on one cue, with no space before them (#56)
@@ -651,6 +652,52 @@ Talking too.
     (dialogue_line)))
 
 ==============================
+Dual dialogue pairs an ordinary cue with a marked forced cue (#11, #57)
+==============================
+
+BRICK
+They're coming out of the woodwork!
+
+@steel ^
+Talking too.
+
+---
+
+(screenplay
+  (dual_dialogue
+    first: (dialogue
+      character: (character
+        name: (character_name))
+      (dialogue_line))
+    second: (dialogue
+      character: (character
+        name: (character_name)
+        marker: (character_marker))
+      (dialogue_line))))
+
+==============================
+A marker with no preceding dialogue to pair with falls back to a standalone dialogue, no parse error (#11)
+==============================
+
+INT. HOUSE - DAY
+
+STEEL ^
+No, we are not.
+
+---
+
+(screenplay
+  (scene_heading
+    prefix: (scene_prefix)
+    location: (location)
+    time: (time))
+  (dialogue
+    character: (character
+      name: (character_name)
+      marker: (character_marker))
+    (dialogue_line)))
+
+==============================
 Forced character with an unclosed extension falls back to a flat cue, no parse error (#57)
 ==============================
 
@@ -662,6 +709,27 @@ Hi there.
 (screenplay
   (dialogue
     (character)
+    (dialogue_line)))
+
+==============================
+A malformed marked extension has no marker field to offer, so it falls back to a standalone dialogue rather than pairing (#11)
+==============================
+
+BRICK
+They're coming out of the woodwork!
+
+@bob (unclosed ^
+Hi there.
+
+---
+
+(screenplay
+  (dialogue
+    character: (character
+      name: (character_name))
+    (dialogue_line))
+  (dialogue
+    character: (character)
     (dialogue_line)))
 
 ==============================

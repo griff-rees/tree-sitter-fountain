@@ -10,6 +10,17 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+### Added
+
+- Dual dialogue: two adjacent `dialogue` blocks group into one
+  `dual_dialogue` node when the second's cue carries the `^` marker
+  ([#11](https://github.com/griff-rees/tree-sitter-fountain/issues/11)).
+  - `first`/`second` fields hold the two `dialogue` members, unchanged
+    in shape from a standalone `dialogue`.
+  - Works for both ordinary and forced (`@NAME`) cues.
+  - A marker with nothing to pair with (or a malformed marked cue)
+    falls back to an ordinary standalone `dialogue`, not a parse error.
+
 ## [0.9.0] - 2026-09-12
 
 ### Added
