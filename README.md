@@ -238,7 +238,8 @@ commit messages. Contributors are expected to follow the
 - [Fountain](https://fountain.io) was created by John August and Nima
   Yousefi, with the specification developed by Stu Maschwitz and others;
   the *Brick & Steel* sample used in `examples/` is by Stu Maschwitz.
-- Earlier drafts of this grammar (preserved in `grammar-old.js`) drew on
+- Earlier drafts of this grammar (preserved in git history, commit
+  `ab7cc8c`) drew on
   [UserNobody14/tree-sitter-fountain](https://github.com/UserNobody14/tree-sitter-fountain),
   whose work is gratefully acknowledged.
 - Carson Fire's [vim-fountain](https://www.vim.org/scripts/script.php?script_id=3880)
