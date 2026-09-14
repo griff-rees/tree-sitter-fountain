@@ -32,8 +32,8 @@
  *     Glossary section of README.md for a fuller definition and links
  *     to tree-sitter's implementation.
  *
- * Earlier drafts of this grammar (preserved in `grammar-old.js`) drew on
- * UserNobody14's tree-sitter-fountain:
+ * Earlier drafts of this grammar (preserved in git history, commit
+ * ab7cc8c) drew on UserNobody14's tree-sitter-fountain:
  * https://github.com/UserNobody14/tree-sitter-fountain
  * This rewrite takes a different approach, but that project's work is
  * gratefully acknowledged.
