@@ -10,6 +10,18 @@ tags; registry publishing is tracked in
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-14
+
+### Removed
+
+- `grammar-old.js`, the pre-`confer`-rewrite grammar kept only for
+  attribution since 0.5.0
+  ([#68](https://github.com/griff-rees/tree-sitter-fountain/issues/68)).
+  It was never published (absent from `package.json`'s `files` array)
+  and wasn't used in build or tests. The attribution comments in
+  `grammar.js` and README now cite the git history commit (`ab7cc8c`)
+  instead.
+
 ## [0.11.0] - 2026-09-12
 
 ### Added
